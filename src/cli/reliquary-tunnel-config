@@ -1,0 +1,56 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 3 ] ; then
+	echo "Usage: reliquary-tunnel-config flock peer-kek-id ip/mask"
+
+	echo ""
+	echo "Configures a tunnel between your device and the device specified"
+	echo "by the peer-kek-id. It will route the provided network over the"
+	echo "tunnel."
+
+	echo ""
+	echo "After doing this, a tunnel can be brought up using hymn:"
+	echo "    $ sudo hymn up <flock>-<src>-<dst>"
+
+	exit 1
+fi
+
+if [ ! -f $DIR/$1/device_kek ]; then
+	echo "The device registration is not yet completed for $1 (no kek)"
+	exit 1
+fi
+
+natport=`cat $DIR/natport`
+src=`cat $DIR/$1/device_kek`
+cathedral=`cat $DIR/cathedral`
+cathedral_id=`cat $DIR/$1/cathedral_id`
+
+host=`uname -s`
+
+if [ "$host" = "OpenBSD" ]; then
+	SUDO=doas
+else
+	SUDO=sudo
+fi
+
+$SUDO hymn add $1-$src-$2 tunnel $3 cathedral $cathedral \
+    kek $DIR/$1/kek-0x$src identity $cathedral_id:$DIR/$1/id-$cathedral_id \
+    cosk $DIR/$1/cosk-$cathedral_id natport $natport
+
+$SUDO hymn remembrance $1-$src-$2 on
+
+echo "Tunnel $1-$src-$2 has been configured."
+echo "Please use hymn from now on to bring it up, down or to delete it."
+echo ""
+echo "    $ sudo hymn up $1-$src-$2"
+echo "    $ sudo hymn down $1-$src-$2"
+echo "    $ sudo hymn status $1-$src-$2"
+echo "    $ sudo hymn del $1-$src-$2"

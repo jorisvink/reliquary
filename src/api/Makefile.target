@@ -1,0 +1,7 @@
+
+install:
+	cp api.py /home/api/api.py
+	cp queries.py /home/api/queries.py
+	cp ratelimit.py /home/api/ratelimit.py
+	cp schema.sql /home/schema.sql
+	cp sync.py /home/cathedral/sync.py

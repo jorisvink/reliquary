@@ -1,0 +1,38 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -ne 2 ]; then
+	echo "Usage: reliquary-ambry-upload flock /path/to/ambry"
+	echo ""
+	echo "Upload an Ambry bundle to the servers for distribution"
+	echo "to all of your devices."
+	echo ""
+	echo "This Ambry bundle contains KEK-wrapped shared secrets"
+	echo "for your tunnels. The server cannot read, nor modify these."
+
+	exit 1
+fi
+
+if [ ! -f $2 ]; then
+	echo "The bundle '$2' is not a file or does not exist"
+	exit 1
+fi
+
+resp=`curl -s --show-error --fail -H "x-token: $TOKEN" --data-binary @$2 $API/ambry/$1`
+
+if [ $? -eq 0 ]; then
+	echo $resp
+else
+	echo "something went wrong"
+fi
+

@@ -1,0 +1,9 @@
+---
+- name: Restart cathedral services
+  hosts: cathedrals
+  become: true
+
+  tasks:
+  - name: Restarting cathedral
+    ansible.builtin.command:
+        /home/cathedral/control.sh

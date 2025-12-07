@@ -1,0 +1,604 @@
+<!doctype html>
+<html>
+
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<link rel="stylesheet" href="reliquary.css">
+<title>The Reliquary || Getting started</title>
+</head>
+
+<body>
+
+<div class="top">
+<img class="reliquary" src="/reliquary.png">
+<span class="reliquary">
+The Reliquary
+<br>
+Secure tunnels between your devices
+<br>
+for hackers, by hackers
+</span>
+</div>
+
+<div class="reliquary-logo">
+<a href="/"><img src="/reliquary.png"></a>
+</div>
+
+<div class="wrapper">
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>Introduction</strong>
+<span class="cross">+</span>
+</span>
+<p class="content">
+This guide will help you to get started with obtaining an account-key
+and setting up your first tunnel between your device-1 and device-2.
+The guide assumes that you are familiar with your system and networking.
+</p>
+</div>
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>Table of contents</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+<ul>
+<li><a href="#prerequisites">Prerequistises</a></li>
+<li><a href="#cli-tools">The cli tools</a></li>
+<li><a href="#reliquary-setup">Reliquary setup</a></li>
+<li><a href="#key-management">Key Management</a></li>
+<li><a href="#flock-creation">Your first flock</a></li>
+<li><a href="#device-1-register">Joining device-1</a></li>
+<li><a href="#device-2-register">Joining device-2</a></li>
+<li><a href="#device-1-config">Setup device-1</a></li>
+<li><a href="#device-2-config">Setup device-2</a></li>
+<li><a href="#tunnel-up">Enabling the tunnel</a></li>
+<li><a href="#hymn">The Hymn tool</a></li>
+<li><a href="#cathedral">Changing Cathedrals</a></li>
+</ul>
+</p>
+</div>
+
+<div class="block" id="prerequisites">
+<span class="title">
+<span class="cross">+</span>
+<strong>Prerequisites</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+<span class="notice">Important</span>:
+Your devices must have a clock that is in sync.
+</p>
+
+<p class="content">
+To get started you need the following on all devices you are planning
+using Reliquary on:
+<ul>
+<li>The reliquary
+<a href="https://reliquary.se/reliquary-cli.tar">cli-tools</a> and its
+dependencies.
+<ul style="margin-left: 30px">
+<li>jq</li>
+<li>xxd</li>
+<li>curl</li>
+</li>
+</ul>
+<li>Dependencies for being able to build the sanctum project:
+<ul style="margin-left: 30px">
+<li>make</li>
+<li>GCC/Clang</li>
+<li>libsodium or mbedtls 3.x.</li>
+</ul>
+</li>
+</ul>
+</p>
+
+<p class="content">
+Fetching The Reliquary cli-tools and make sure they
+live in your <span class="cmd">PATH</span> somewhere.
+<pre>
+$ mkdir ~/reliquary
+$ cd ~/reliquary
+$ curl -O https://reliquary.se/reliquary-cli.tar
+$ tar fvx reliquary-cli.tar
+$ export PATH=~/reliquary:$PATH
+</pre>
+</p>
+
+<p class="content">
+Building sanctum is straight-forward:
+<pre>
+$ git clone https://github.com/jorisvink/sanctum
+$ cd sanctum
+$ make
+$ sudo make install
+</pre>
+</p>
+
+<p class="content">
+We highly recommend designating two machines with these purposes
+for a safer setup:
+<ul>
+<li><span class="cmd">keyprod</span> -
+An air-gapped machine on which you produce keys.</li>
+<li><span class="cmd">admin</span> -
+A machine on which you are logged into The Reliquary with.</li>
+</ul>
+<p class="content">
+If you are simply testing, these could all be the same machine.
+</p>
+</p>
+</div>
+
+<div class="block" id="cli-tools">
+<span class="title">
+<span class="cross">+</span>
+<strong>The cli-tools</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+The Reliquary cli-tools are shell scripts based around
+<span class="cmd">curl</span> to perform the API requests and
+<span class="cmd">jq</span> to parse the responses. Below is a list
+of the most relevant ones and what they do.
+</p>
+<ul>
+<li><span class="cmd">reliquary-status</span> -
+Display reliquary status on the machine.</li>
+<li><span class="cmd">reliquary-init</span> -
+Initialise reliquary without login.</li>
+<li><span class="cmd">reliquary-register</span> -
+Registers a new account.</li>
+<li><span class="cmd">reliquary-login</span> -
+Login to an existing account.</li>
+<li><span class="cmd">reliquary-flock-create</span> -
+Create a new flock tied to your account.</li>
+<li><span class="cmd">reliquary-flock-list</span> -
+List your current flocks on your account.</li>
+<li><span class="cmd">reliquary-flock-join</span> -
+Join a device into one of your flocks.</li>
+<li><span class="cmd">reliquary-device-list</span> -
+List all devices in one of your flocks.</li>
+<li><span class="cmd">reliquary-device-approve</span> -
+Approve a device that has joined one of your flocks.</li>
+<li><span class="cmd">reliquary-device-delete</span> -
+Removes a device from your flock.</li>
+<li><span class="cmd">reliquary-kek-install</span> -
+Install a KEK for a flock.</li>
+<li><span class="cmd">reliquary-ambry-upload</span> -
+Upload a new ambry bundle for a flock.</li>
+<li><span class="cmd">reliquary-cathedral-list</span> -
+Lists all cathedrals in The Reliquary.</li>
+<li><span class="cmd">reliquary-tunnel-configure</span> -
+Configures a tunnel to another peer in the same flock.</li>
+</ul>
+
+<p class="content">
+The cli-tools store files under <span class="cmd">$HOME/.config/reliquary</span>
+by default. This path may be overwritten by setting <span class="cmd">RELIQUARY</span> in your environment before executing any tool.
+</p>
+</div>
+
+<div class="block" id="reliquary-setup">
+<span class="title">
+<span class="cross">+</span>
+<strong>Reliquary setup</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+Lets get the <span class="cmd">admin</span> machine setup by creating
+a new Reliquary account, or logging into an existing account.
+</p>
+
+<p class="content">
+<strong>Creating a new account</span>
+machine:</strong>
+<pre>
+$ reliquary-register https://vessel.reliquary.se/v1
+</pre>
+</p>
+
+<p class="content">
+Make sure you remember your api for the future as it is the only
+way to login to your account from another machine.
+<span class="notice">There are no account recovery methods</span>.
+</p>
+
+<p class="content">
+Newly created accounts are limited to 3 flocks and initially valid for only
+24 hours, which can be extended via the
+<a href="https://vessel.reliquary.se/account/login">account</a> page.
+</p>
+
+<p class="content">
+- or -
+</p>
+
+<p class="content">
+<strong>Login to an existing account:</strong>
+<pre>
+$ reliquary-login https://vessel.reliquary.se/v1 &lt;accountkey&gt;
+</pre>
+</p>
+
+</div>
+
+<div class="block" id="key-management">
+<span class="title">
+<span class="cross">+</span>
+<strong>Key Management</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+You are in charge of your own keys.
+</p>
+
+<p class="content">
+Practically this will mean using the <strong>ambry</strong> tool from
+sanctum to generate new KEKs and ambry bundles for distribution. We will
+see how to do this in the next step.
+</p>
+
+<p class="content">
+The Reliquary will never see any of the encryption keys used
+to protect your traffic. Each device in a reliquary flock will
+receive exactly one KEK and is identified by its KEK id (eg b5).
+</p>
+
+<p class="content">
+<span class="notice">Important</span>:
+Generate new ambry bundles often and upload them
+to rollover your shared secrets. Devices will reject ambries who's
+expiration date has passed.
+</p>
+
+<p class="content">
+<span class="notice">Important</span>:
+We strongly recommend you generate your KEKs and
+ambry bundles on an air-gapped computer as to prevent them from leaking.
+</p>
+
+<p class="content">
+<span class="notice">Important</span>:
+If a KEK for a device is leaked you must
+immediately renew the KEK and generate a new ambry bundle such that
+the compromised KEK cannot be used. No traffic will be compromised due
+to the fact that the key exchange also includes ECDH+ML-KEM-1024.
+</p>
+
+</div>
+
+<div class="block" id="flock-creation">
+<span class="title">
+<span class="cross">+</span>
+<strong>Creating your first flock</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+Create your first flock using your <span class="cmd">admin</span> machine:
+<pre>
+$ reliquary-flock-create
+flock 350d5c8b33dfb700 created
+$
+</pre>
+</p>
+
+<p class="content">
+Using the flock-id we just created we generate new KEKs and a wrapped
+bundle for upload, on your <span class="cmd">keyprod</span> machine
+do as follows:
+<pre>
+$ ambry generate 350d5c8b33dfb700
+generating device KEKs under 350d5c8b33dfb700 ... done
+deriving internal flock KEKs ... done
+$
+
+$ ambry bundle 350d5c8b33dfb700 350d5c8b33dfb700 30 ambry.bundle
+ambry.bundle: generated 32385 tunnels, generation 0x57f6416c
+$
+</pre>
+</p>
+
+<p class="content">
+Now move the ambry bundle from <span class="cmd">keyprod</span> to
+our <span class="cmd">admin</span> machine. How you do this is up to you.
+
+<p class="content">
+Once on the <span class="cmd">admin</span> machine we can upload it
+so that The Reliquary can distribute these wrapped secrets to your
+devices in the future.
+<pre>
+$ reliquary-ambry-upload 350d5c8b33dfb700 ambry.bundle
+ambry uploaded
+$
+</pre>
+</p>
+
+<p class="content">
+<span class="notice">Important</span>:
+We cannot read the wrapped ambry bundle as we do not have any of your KEKs.
+</p>
+
+<p class="content">
+Now that we have a flock and provisioned it with keys we can move on to
+joining our two devices (device-1 and device-2) into the flock and
+getting them talking to each other.
+</p>
+</div>
+
+<div class="block" id="device-1-register">
+<span class="title">
+<span class="cross">+</span>
+<strong>Joining device-1</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+Joining a device into a Reliquary flock does not require the device
+to be logged into Reliquary.
+</p>
+
+<p class="content">
+You use
+<a href="https://reliquary.se/reliquary-cli.tar">cli-tools</a> to initialise
+The Reliquary on your client devices after which you join them into your
+newly created flock.
+</p>
+
+<p class="content">
+Initialise The Reliquary on your client, unless the client is
+the <span class="cmd">admin</span> machine:
+<pre>
+$ reliquary-init https://vessel.reliquary.se/v1
+reliquary initialised
+$
+</pre>
+</p>
+
+<p class="content">
+Now we join it into the flock we created earlier:
+<pre>
+$ reliquary-flock-join 350d5c8b33dfb7db
+This device has been joined into 350d5c8b33dfb7db and is pending approval by
+the flock administrator.
+
+    Device: 577165a1
+
+Once approved, the flock administrator will send you the device
+its KEK, please place this under the following path:
+
+    /home/user/.config/reliquary/a51f2c141258ab00
+</pre>
+</p>
+
+<p class="content">
+<span class="notice">Important</span>:
+A device must be approved after joining a flock.
+</p>
+
+<p class="content">
+On your <span class="cmd">admin</span> machine approve the newly joined device:
+<pre>
+$ reliquary-device-approve 350d5c8b33dfb7db 577165a1
+device approved, please supply it with 350d5c8b33dfb700/kek-data/kek-0x01
+$
+</pre>
+</p>
+
+<p class="content">
+You will find the KEK on your <span class="cmd">keyprod</span> machine.
+<pre>
+$ ls -l 350d5c8b33dfb700/kek-data/kek-0x01
+-r-------- 1 archael archael 32 jun 28 10:48 350d5c8b33dfb700/kek-data/kek-0x01
+$
+</pre>
+</p>
+
+<p class="content">
+The KEK must now be installed on your client device. You can do this using
+<span class="cmd">reliquary-kek-install</span>.
+<br>
+In the example in the guide device-1 receives kek-id 01 and thus
+we run the following command on the client:
+<pre>
+$ reliquary-kek-install 350d5c8b33dfb700 01 /path/to/kek-0x01
+The KEK is now installed as kek-0x01 in 4e9dc3b4f8a3af00.
+$
+</pre>
+</p>
+
+<p class="content">
+How to transfer the KEK file from your <span class="cmd">keyprod</span>
+machine to your client is not part of this guide as it
+can be accomplished in many ways.
+</p>
+
+<p class="content">
+We recommend a physical approach for the best security.
+</p>
+
+</div>
+
+<div class="block" id="device-2-register">
+<span class="title">
+<span class="cross">+</span>
+<strong>Joining device-2</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+Run <span class="cmd">reliquary-init</span> and
+<span class="cmd">reliquary-flock-join</span> on your second device,
+approve it in the same way as you did for device-1 and finally distribute
+and install the requested KEK to said device.
+</p>
+
+</div>
+
+<div class="block" id="device-1-config">
+<span class="title">
+<span class="cross">+</span>
+<strong>Setup device-1</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+Configure a tunnel from device-1 to device-2 using
+the <span class="cmd">reliquary-tunnel-config</span> command.
+</p>
+
+<p class="content">
+<pre>
+$ reliquary-tunnel-config 350d5c8b33dfb7db 02 172.16.99.1/29
+Tunnel 350d5c8b33dfb7db-01-02 has been configured.
+Please use hymn from now on to bring it up, down or to delete it.
+
+    $ sudo hymn up 350d5c8b33dfb7db-01-02
+    $ sudo hymn down 350d5c8b33dfb7db-01-02
+    $ sudo hymn del 350d5c8b33dfb7db-01-02
+$
+</pre>
+</p>
+</div>
+
+<div class="block" id="device-2-config">
+<span class="title">
+<span class="cross">+</span>
+<strong>Setup device-2</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+Configure a tunnel from device-2 to device-1 in the same way.
+</p>
+
+<p class="content">
+<pre>
+$ reliquary-tunnel-config 350d5c8b33dfb7db 01 172.16.99.2/29
+Tunnel 350d5c8b33dfb7db-02-01 has been configured.
+Please use hymn from now on to bring it up, down or to delete it.
+
+    $ sudo hymn up 350d5c8b33dfb7db-02-01
+    $ sudo hymn down 350d5c8b33dfb7db-02-01
+    $ sudo hymn del 350d5c8b33dfb7db-02-01
+$
+</pre>
+</p>
+</div>
+
+<div class="block" id="tunnel-up">
+<span class="title">
+<span class="cross">+</span>
+<strong>Enabling the tunnel</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+Finally, if you did everything right we can bring up the tunnel using
+the <strong>hymn</strong> tool. Using the commands that
+<span class="cmd">reliquary-tunnel-config</span> showed for
+both device-1 and device-2 we bring up the tunnel.
+</p>
+
+<p class="content">
+On device-1:
+<pre>
+$ sudo hymn up 350d5c8b33dfb7db-01-02
+</pre>
+</p>
+
+<p class="content">
+On device-2:
+<pre>
+$ sudo hymn up 350d5c8b33dfb7db-02-01
+</pre>
+</p>
+
+<p class="content">
+If everything works you'll be able to ping the device-2 (172.16.99.2)
+from device-1 (172.16.99.1) and vise-versa. You can use the
+<strong>hymn status</strong> command on both devices to see status
+about the tunnel.
+</p>
+</div>
+
+<div class="block" id="hymn">
+<span class="title">
+<span class="cross">+</span>
+<strong>The Hymn tool</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+The <strong>hymn</strong> tool is used to manage your tunnels once
+configured. It can be used to bring up/down tunnels, add routes (requires
+a restart of tunnels) and see tunnel statistics.
+
+<pre>
+# hymn
+usage: hymn [cmd]
+commands:
+  add         - add a new tunnel
+  bridge      - attach to a bridge interface
+  cathedral   - change cathedral for a tunnel
+  del         - delete an existing tunnel
+  down        - kills the given tunnel
+  mtu         - change mtu for a given tunnel
+  list        - list all configured tunnels
+  liturgy     - configure a liturgy
+  name        - sets the name for a given tunnel
+  status      - show a specific tunnel its info
+  remembrance - toggle remembrance on given tunnel
+  restart     - restart a tunnel (down, up)
+  route       - modify tunnel routing rules
+  up          - starts the given tunnel
+#
+</pre>
+
+</p>
+</div>
+
+<div class="block" id="cathedral">
+<span class="title">
+<span class="cross">+</span>
+<strong>Changing Cathedrals</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+The reliquary provides several different cathedrals that can all be used
+to discover peers or relay traffic. It is possible to change to any cathedral
+at any time by using the <strong>hymn</strong> tool. This makes the reliquary
+very resilient against cathedrals going offline by allowing you to
+quickly just swap to another one.
+</p>
+
+<p class="content">
+You can use the <span class="cmd">reliquary-cathedral-list</span>
+cli tool to see what cathedrals are currently available in the reliquary.
+After swapping cathedral restart the tunnel.
+
+<pre>
+$ reliquary-cathedral-list
+de-1 157.90.25.232:4500
+fi-1 37.27.200.90:4500
+$ sudo hymn cathedral 350d5c8b33dfb7db-02-01 37.27.200.90:4500
+$ sudo hymn restart 350d5c8b33dfb7db-02-01
+</pre>
+</p>
+</div>
+
+</div>
+</body>
+
+</html>

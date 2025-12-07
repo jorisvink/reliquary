@@ -1,0 +1,51 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 0 ]; then
+	echo "Usage: reliquary-status"
+
+	echo ""
+	echo "Displays this device its current reliquary status."
+
+	exit 1
+fi
+
+if [ ! -d $DIR ]; then
+	echo "This device does not appear to have a reliquary configuration."
+	echo ""
+	echo "Please run the following to get it setup:"
+	echo "    $ reliquary-init <api> <account key>"
+	exit 1
+fi
+
+echo "Reliquary is initiated."
+
+flocks=`find $DIR ! -path $DIR  -type d`
+
+for flock in $flocks; do
+	name=`basename $flock`
+
+	if [ ! -f "$DIR/$name/cathedral_id" ]; then
+		continue
+	fi
+
+	cathedral_id=`cat $DIR/$name/cathedral_id`
+
+	echo "    flock $name"
+
+	if [ ! -f $DIR/$name/device_kek ]; then
+		echo "        kek          awaiting kek from flock owner"
+	else
+		kek=`cat $DIR/$name/device_kek`
+		echo "        kek          $kek (ready)"
+	fi
+
+	echo "        device-id    $cathedral_id"
+done

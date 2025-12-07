@@ -1,0 +1,5 @@
+api:
+    hosts:
+        vm001:
+            ansible_host: 192.168.122.102
+            target_arch: x86_64

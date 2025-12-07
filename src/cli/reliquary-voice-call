@@ -1,0 +1,42 @@
+#!/bin/sh
+
+set -e
+set -x
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 2 ]; then
+	echo "Usage: reliquary-voice-call [flock] [target]"
+	echo "Use confessions to make an voice call to another peer."
+	exit 1
+fi
+
+if [ ! -f /usr/local/bin/confessions ]; then
+	echo "No confessions binary available"
+	exit 1
+fi
+
+if [ ! -f $DIR/$1/device_kek ]; then
+	echo "The device registration is not yet completed for $1 (no kek)"
+	exit 1
+fi
+
+flock=$1
+cathedral=`cat $DIR/cathedral`
+src=`cat $DIR/$flock/device_kek`
+cathedral_id=`cat $DIR/$flock/cathedral_id`
+
+if [ ! -z "$CATHEDRAL" ]; then
+	cathedral=$CATHEDRAL
+fi
+
+echo "flock:$flock - src:$src - id:$cathedral_id ($cathedral)"
+echo "starting confessions ... "
+
+/usr/local/bin/confessions cathedral -s $DIR/$flock/id-$cathedral_id \
+    -k $DIR/$flock/kek-0x$src -f $1 -i $cathedral_id -t 0x$src$2 \
+    -o $DIR/$flock/cosk-$cathedral_id $cathedral

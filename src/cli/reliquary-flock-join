@@ -1,0 +1,84 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -eq 2 ]; then
+	DIR=$2
+elif [ $# -ne 1 ]; then
+	echo "Usage: reliquary-flock-join flock [outdir]"
+
+	echo ""
+	echo "Joins this device into the given flock."
+	echo ""
+	echo "If outdir is specified all files will be stored there"
+	echo "instead of the default location"
+	echo ""
+	echo "The device needs to be authorized by the flock administrator"
+	echo "before it can be used."
+
+	exit 1
+fi
+
+if [ -f $DIR/$1/cathedral_id ]; then
+	id=`cat $DIR/$1/cathedral_id`
+
+	echo "This device has already been join into flock $1 ($id)."
+	echo ""
+
+	echo "If you want to re-join this device please remove the following "
+	echo "directory then rerun this command."
+	echo ""
+	echo "    $DIR/$1"
+	echo ""
+	echo "Note that any configured tunnels you may have will fail"
+	echo "and you must remove them using the hymn tool."
+	echo ""
+	echo "You may see configured tunnels using the following command:"
+	echo "    $ sudo hymn list $1"
+	echo ""
+
+	exit 1
+fi
+
+mkdir -p $DIR/$1
+rm -f $DIR/$1/cosk-priv $DIR/$1/cosk-pub
+ambry cosk-pair $DIR/$1/cosk-priv $DIR/$1/cosk-pub
+
+dev=`curl -s --show-error --fail -H "x-token: $TOKEN" \
+    --data-binary @$DIR/$1/cosk-pub $API/device/$1/create`
+
+if [ $? -eq 0 ]; then
+	mkdir -p $DIR/$1
+
+	flock=`echo $dev | jq -r .flock`
+	id=`echo $dev | jq -r .cathedral_id`
+	secret=`echo $dev | jq -r .cathedral_secret`
+
+	echo $id > $DIR/$1/cathedral_id
+	echo $secret | xxd -r -p - $DIR/$1/id-$id
+
+	mv $DIR/$1/cosk-priv $DIR/$1/cosk-$id
+	mv $DIR/$1/cosk-pub $DIR/$1/cosk-pub-$id
+
+	echo "This device has been joined into $1 and is pending approval by"
+	echo "the flock administrator."
+	echo ""
+	echo "    Device: $id"
+	echo ""
+	echo "Once approved, the flock administrator will send you the device"
+	echo "its KEK, please place this under the following path:"
+	echo ""
+	echo "    $DIR/$1"
+	echo ""
+else
+	echo "something went wrong: $dev"
+fi

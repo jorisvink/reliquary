@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<link rel="stylesheet" href="https://reliquary.se/reliquary.css">
+
+<style>
+img {
+    width: 64px;
+    height: auto;
+}
+
+input {
+    width: 650px;
+    height: 36px;
+    padding: 5px;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    background-color: rgba(251, 174, 210, 0.25);
+}
+
+button {
+    width: 180px;
+    height: 36px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 25px;
+    margin-bottom: 25px;
+    color: white;
+    background-color: rgba(251, 174, 210, 0.25);
+}
+
+.login {
+    margin-top: 25px;
+}
+</style>
+
+</style>
+</head>
+
+<body>
+
+<div class="top">
+<img src="https://reliquary.se/reliquary.png">
+<span class="reliquary">
+The Reliquary
+<br>
+Secure tunnels between your devices
+<br>
+for hackers, by hackers
+</span>
+</div>
+
+<div class="reliquary-logo">
+<img src="https://reliquary.se/reliquary.png">
+</div>
+
+<div class="wrapper">
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>Account</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+Welcome, {{account}}
+</p>
+
+<p class="content">
+Your account can maximum have {{flocks_max}} flocks active.
+</p>
+
+<p class="content">
+Your account is in good standing.
+</p>
+
+<form method="POST" action="/account/logout">
+<button>LOGOUT</button>
+</form>
+</div>
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>Duration</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+You can manage your account its expiration from this account page. You
+can reset your expiration time by clicking the button below.
+</p>
+
+<p class="content">
+Time left: {{expires}} seconds
+</p>
+
+<p class="content">
+<form method="POST" action="/account/time">
+<button>RESET TIME</button>
+</form>
+</p>
+</div>
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>Flocks</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+{% for flock in flocks %}
+{{flock.id}}
+<br>
+{% endfor %}
+</p>
+</div>
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>DANGER ZONE</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+You may choose to delete your account at any time, this will permanently
+delete all flocks and devices from your account and you will no longer
+be able to use any devices.
+</p>
+
+<p class="content">
+Please note that the button below does not ask for
+confirmation, once you click it your account and all associated data is gone.
+</p>
+
+<p class="content">
+<form method="POST" action="/account/delete">
+<button>DELETE ACCOUNT</button>
+</form>
+</p>
+</div>
+
+</div>
+</body>
+
+</html>

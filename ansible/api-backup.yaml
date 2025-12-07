@@ -1,0 +1,25 @@
+---
+- hosts: api
+  become: true
+
+  tasks:
+    - name: date thing
+      set_fact:
+        now: "{{ lookup('pipe', 'date +%Y-%m-%d') }}"
+
+    - name: do backup to tmp folder
+      become_user: postgres
+      postgresql_db:
+        state: dump
+        name: "accounts"
+        target: "/tmp/{{now}}_accounts.tgz"
+
+    - name: copy it out
+      fetch:
+        src: "/tmp/{{now}}_accounts.tgz"
+        dest: "{{now}}_accounts.tgz"
+
+    - name: remove backup on machine
+      ansible.builtin.file:
+        path: "/tmp/{{now}}_accounts.tgz"
+        state: absent

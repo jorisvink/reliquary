@@ -1,0 +1,317 @@
+---
+- name: Deploy reliquary api
+  hosts: api
+  become: true
+
+  vars:
+    reldir: "{{release}}-{{target_arch}}"
+
+  tasks:
+  - name: install acl
+    ansible.builtin.package:
+      name: acl
+
+  - name: install jinja2
+    ansible.builtin.package:
+      name: python3-jinja2
+
+  - name: Create api user
+    ansible.builtin.user:
+      name: api
+      home: /home/api
+      shell: /sbin/nologin
+      create_home: true
+      move_home: true
+      system: true
+      state: present
+
+  - name: Create acme user
+    ansible.builtin.user:
+      name: acme
+      home: /home/acme
+      shell: /sbin/nologin
+      system: true
+      state: present
+
+  - name: Create keymgr user
+    ansible.builtin.user:
+      name: keymgr
+      home: /home/keymgr
+      shell: /sbin/nologin
+      system: true
+      state: present
+
+  - name: Create syncretism user
+    ansible.builtin.user:
+      name: syncretism
+      home: /home/syncretism
+      shell: /sbin/nologin
+      system: true
+      state: present
+
+  - name: Create login user
+    ansible.builtin.user:
+      name: priest
+      home: /home/priest
+      groups: sudo
+      state: present
+      password: "{{priest_passphrase}}"
+
+  - name: Setup SSH key for login user
+    ansible.posix.authorized_key:
+      state: present
+      user: priest
+      key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+
+  - name: Setup sshd configuration
+    ansible.builtin.copy:
+      content: |
+        Port 22
+        ListenAddress {{ansible_ssh_host}}
+        Protocol 2
+        HostKey /etc/ssh/ssh_host_rsa_key
+        SyslogFacility AUTH
+        LogLevel INFO
+        LoginGraceTime 15
+        PermitRootLogin no
+        StrictModes yes
+        PasswordAuthentication no
+        PubkeyAuthentication yes
+        IgnoreRhosts yes
+        HostbasedAuthentication no
+        PermitEmptyPasswords  no
+        ChallengeResponseAuthentication no
+        X11Forwarding no
+        PrintMotd yes
+        PrintLastLog yes
+        TCPKeepAlive yes
+        Subsystem sftp /usr/lib/openssh/sftp-server
+        MaxAuthTries 3
+        MaxSessions 5
+        AllowUsers priest
+      dest: "/etc/ssh/sshd_config"
+      owner: root
+      group: root
+      mode: "0644"
+
+  - name: Restart sshd
+    service:
+       name: ssh
+       state: restarted
+
+  - name: Setup the API directories
+    ansible.builtin.file:
+      state: directory
+      dest: "{{ item }}"
+      owner: api
+      group: api
+      mode: "0500"
+    loop:
+    - /home/api/templates
+
+  - name: Copy the api files
+    ansible.builtin.copy:
+      dest: "{{ item.dst }}"
+      owner: api
+      group: api
+      mode: "0600"
+      src: "{{ item.src }}"
+    loop:
+       - src: "{{reldir}}/api-files/api.py"
+         dst: "/home/api/api.py"
+       - src: "{{release}}-{{target_arch}}/api-files/queries.py"
+         dst: "/home/api/queries.py"
+       - src: "{{reldir}}/api-files/ratelimit.py"
+         dst: "/home/api/ratelimit.py"
+       - src: "{{reldir}}/api-files/sync.py"
+         dst: "/home/api/sync.py"
+       - src: "{{reldir}}/api-files/templates/account.html"
+         dst: "/home/api/templates/account.html"
+       - src: "{{reldir}}/api-files/templates/login.html"
+         dst: "/home/api/templates/login.html"
+
+  - name: Create api start script
+    ansible.builtin.copy:
+      content: |
+            #!/bin/sh
+
+            export API_DEPLOYMENT=production
+            export API_AMBRY_PATH=/home/shared/ambries
+            export API_DOMAIN={{ api_hostname }}
+            export API_CATHEDRAL={{ api_initial_cathedral }}
+
+            if [ -f /tmp/api.pid ]; then
+                echo "Stopping api"
+                kill -QUIT `cat /tmp/api.pid`
+            fi
+
+            while [ -f /tmp/api.pid ]; do
+                echo "waiting for api to die"
+                sleep 1
+            done
+
+            kore /home/api/api.py
+
+      dest: "/home/api/api.sh"
+      owner: root
+      group: root
+      mode: "0500"
+
+  - name: Create sync control script
+    ansible.builtin.copy:
+      content: |
+            #!/bin/sh
+
+            export SYNC_DEPLOYMENT=production
+            export SYNC_SHARED_PATH=/home/shared
+
+            if [ -f /tmp/sync.pid ]; then
+                echo "Stopping sync"
+                kill -QUIT `cat /tmp/sync.pid`
+            fi
+
+            while [ -f /tmp/sync.pid ]; do
+                echo "waiting for sync to die"
+                sleep 1
+            done
+
+            echo "starting sync"
+            kore /home/api/sync.py
+            echo "result: $?"
+
+      dest: "/home/api/sync.sh"
+      owner: root
+      group: root
+      mode: "0500"
+
+  - name: Setup the directories for syncretism
+    ansible.builtin.file:
+      state: directory
+      dest: "{{ item }}"
+      owner: api
+      group: syncretism
+      mode: "0750"
+    loop:
+    - /home/shared
+    - /home/shared/ambries
+    - /home/shared/identities
+
+  - name: Create syncretism control script
+    ansible.builtin.copy:
+      content: |
+            #!/bin/sh
+
+            if [ -f /tmp/syncretism.pid ]; then
+                echo "Stopping syncretism server"
+                kill -QUIT `cat /tmp/syncretism.pid`
+            fi
+
+            while [ -f /tmp/syncretism.pid ]; do
+                echo "waiting for syncretism server to die"
+                sleep 1
+            done
+
+            echo "starting syncretism"
+            syncretism -d -p /tmp/syncretism.pid -s \
+                -k /etc/syncretism-api/syncretism.secret \
+                {{ ansible_ssh_host }}:8760 /home/shared
+            echo "result: $?"
+
+      dest: "/home/syncretism/control.sh"
+      owner: syncretism
+      group: syncretism
+      mode: "0500"
+
+  - name: Copy kore binary
+    ansible.builtin.copy:
+      dest: "/usr/bin/kore"
+      owner: root
+      group: root
+      mode: "0555"
+      src: "{{reldir}}/kore"
+
+  - name: Copy syncretism binary
+    ansible.builtin.copy:
+      dest: "/usr/bin/syncretism"
+      owner: root
+      group: root
+      mode: "0555"
+      src: "{{reldir}}/syncretism"
+
+  - name: Setup the syncretism directories
+    ansible.builtin.file:
+      state: directory
+      dest: "{{ item }}"
+      owner: syncretism
+      group: syncretism
+      mode: "0500"
+    loop:
+    - /etc/syncretism-api
+
+  - name: Copy the syncretism secret
+    ansible.builtin.copy:
+      content: "{{ syncretism_secret | b64decode }}"
+      dest: "/etc/syncretism-api/syncretism.secret"
+      owner: syncretism
+      group: syncretism
+      mode: "0400"
+
+  - name: Creating kore shared directory
+    ansible.builtin.file:
+      state: directory
+      dest: "/usr/local/share/kore/"
+      owner: root
+      group: root
+      mode: "0555"
+
+  - name: Make sure ffdhe4096 exists on the system for kore
+    ansible.builtin.copy:
+      dest: "/usr/local/share/kore/ffdhe4096.pem"
+      owner: root
+      group: root
+      mode: "0444"
+      src: "{{reldir}}/fakeroot/share/kore/ffdhe4096.pem"
+
+  - name: Make sure pgsql is installed
+    ansible.builtin.apt:
+      pkg:
+        - postgresql
+        - python3-psycopg2
+
+  - name: Make sure pgsql is running
+    ansible.builtin.service:
+      name: postgresql
+      state: started
+      enabled: yes
+
+  - name: Make sure accounts db exists
+    postgresql_db:
+      state: present
+      name: accounts
+    become_user: postgres
+
+  - name: Add the api user
+    postgresql_user:
+      state: present
+      name: "api"
+    become_user: postgres
+
+  - name: Make sure api user has permissions to tables
+    postgresql_privs:
+      db: accounts
+      state: present
+      type: table
+      objs: ALL_IN_SCHEMA
+      privs: SELECT,INSERT,UPDATE,DELETE
+      role: api
+    become_user: postgres
+
+  - name: Make sure api user has permissions to sequences
+    postgresql_privs:
+      db: accounts
+      state: present
+      type: sequence
+      privs: ALL
+      objs: ALL_IN_SCHEMA
+      role: api
+    become_user: postgres

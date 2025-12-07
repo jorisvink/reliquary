@@ -1,0 +1,55 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 3 ]; then
+	echo "Usage: reliquary-flock-liturgy flock prefix group"
+
+	echo ""
+	echo "Configures a liturgy instance for the given flock."
+	echo "Please note that you should not configure any tunnels manually"
+	echo "when using a liturgy as a liturgy instance will automatically"
+	echo "manage tunnels to other devices in the flock."
+	echo ""
+	echo "The group is a 16-bit liturgy group, free of choice."
+	echo ""
+	echo "The prefix is the network prefix used to set ips for peers."
+	echo ""
+
+	exit 1
+fi
+
+if [ ! -f $DIR/$1/device_kek ]; then
+	echo "The device registration is not yet completed for $1 (no kek)"
+	exit 1
+fi
+
+natport=`cat $DIR/natport`
+src=`cat $DIR/$1/device_kek`
+id=`cat $DIR/$1/cathedral_id`
+cathedral=`cat $DIR/cathedral`
+
+host=`uname -s`
+if [ "$host" = "OpenBSD" ]; then
+	SUDO=doas
+else
+	SUDO=sudo
+fi
+
+$SUDO hymn liturgy $1-$src cathedral $cathedral \
+    identity $id:$DIR/$1/id-$id kek $DIR/$1/kek-0x$src \
+    prefix $2 natport $natport group $3 cosk $DIR/$1/cosk-$id
+
+echo "A liturgy for $1 has been created."
+echo ""
+echo "You can then bring it up using hymn:"
+echo "    $ sudo hymn up $1-$src-00"
+echo "    $ sudo hymn down $1-$src-00"
+echo "    $ sudo hymn status $1-$src-00"
+echo "    $ sudo hymn del $1-$src-00"

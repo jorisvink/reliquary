@@ -1,0 +1,27 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -ne 0 ]; then
+	echo "Usage: reliquary-flock-create"
+	echo ""
+	echo "Creates a new flock."
+	exit 1
+fi
+
+resp=`curl -s --show-error --fail -H "x-token: $TOKEN" --data "" $API/flock/create`
+
+if [ $? -eq 0 ]; then
+	echo "$resp"
+else
+	echo "something went wrong: $resp"
+fi
+

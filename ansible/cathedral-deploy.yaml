@@ -1,0 +1,211 @@
+---
+- name: Deploy reliquary cathedral
+  hosts: cathedrals
+  become: true
+
+  vars:
+    reldir: "{{release}}-{{target_arch}}"
+
+  tasks:
+  - name: Create cathedral user
+    ansible.builtin.user:
+      name: cathedral
+      home: /home/cathedral
+      shell: /sbin/nologin
+      create_home: true
+      move_home: true
+      system: true
+      state: present
+
+  - name: Create purgatory user
+    ansible.builtin.user:
+      name: purgatory
+      home: /dev/null
+      shell: /sbin/nologin
+      system: true
+      state: present
+
+  - name: Create login user
+    ansible.builtin.user:
+      name: priest
+      home: /home/priest
+      groups: sudo
+      state: present
+      password: "{{priest_passphrase}}"
+
+  - name: Setup SSH key for login user
+    ansible.posix.authorized_key:
+      state: present
+      user: priest
+      key: "{{ item }}"
+    loop:
+      "{{ ssh_keys }}"
+
+  - name: Setup sshd configuration
+    ansible.builtin.copy:
+      content: |
+        Port 22
+        ListenAddress {{ansible_ssh_host}}
+        Protocol 2
+        HostKey /etc/ssh/ssh_host_rsa_key
+        SyslogFacility AUTH
+        LogLevel INFO
+        LoginGraceTime 15
+        PermitRootLogin no
+        StrictModes yes
+        PasswordAuthentication no
+        PubkeyAuthentication yes
+        IgnoreRhosts yes
+        HostbasedAuthentication no
+        PermitEmptyPasswords  no
+        ChallengeResponseAuthentication no
+        X11Forwarding no
+        PrintMotd yes
+        PrintLastLog yes
+        TCPKeepAlive yes
+        Subsystem sftp /usr/lib/openssh/sftp-server
+        MaxAuthTries 3
+        MaxSessions 5
+        AllowUsers priest
+      dest: "/etc/ssh/sshd_config"
+      owner: root
+      group: root
+      mode: "0644"
+
+  - name: Restart sshd
+    service:
+       name: ssh
+       state: restarted
+
+  - name: Setup the cathedral directories
+    ansible.builtin.file:
+      state: directory
+      dest: "{{ item }}"
+      owner: cathedral
+      group: cathedral
+      mode: "0700"
+    loop:
+    - /home/cathedral
+    - /home/cathedral/shared/ambries
+    - /home/cathedral/shared/identities
+
+  - name: Setup tmpfs for identities
+    mount: name=/home/cathedral/shared/identities src='tmpfs' fstype=tmpfs opts='size=256m' state=mounted
+
+  - name: Copy sanctum binary
+    ansible.builtin.copy:
+      dest: "/usr/bin/sanctum"
+      owner: root
+      group: root
+      mode: "0555"
+      src: "{{reldir}}/sanctum"
+
+  - name: Copy syncretism binary
+    ansible.builtin.copy:
+      dest: "/usr/bin/syncretism"
+      owner: root
+      group: root
+      mode: "0555"
+      src: "{{reldir}}/syncretism"
+
+  - name: Setup the cathedral config
+    ansible.builtin.copy:
+      content: |
+        mode cathedral
+        instance cathedral
+
+        pidfile /tmp/cathedral.pid
+        local {{ ansible_ssh_host }}:4500
+        secret /home/cathedral/sync.secret
+        secretdir /home/cathedral/shared/identities
+        settings /home/cathedral/shared/settings.conf
+
+        {% if p2p_sync is defined %}
+        cathedral_p2p_sync yes
+        {% endif %}
+
+        {% if nat_port is defined %}
+        cathedral_nat_port {{nat_port}}
+        {% endif %}
+
+        {% if tfc_on is defined %}
+        tfc on
+        {% endif %}
+
+        {% if encap_key is defined %}
+        encapsulation {{ encap_key }}
+        {% endif %}
+
+        run control as root
+        run cathedral as cathedral
+        run purgatory-rx as purgatory
+        run purgatory-tx as purgatory
+      dest: "/home/cathedral/cathedral.conf"
+      owner: cathedral
+      group: cathedral
+      mode: "0600"
+
+  - name: Setup the cathedral settings
+    ansible.builtin.file:
+      path: "/home/cathedral/shared/settings.conf"
+      owner: cathedral
+      group: cathedral
+      mode: "0600"
+      state: touch
+
+  - name: Copy the cathedral federation secret
+    ansible.builtin.copy:
+      content: "{{ federation_secret | b64decode }}"
+      dest: "/home/cathedral/sync.secret"
+      owner: cathedral
+      group: cathedral
+      mode: "0400"
+
+  - name: Create cathedral control script
+    ansible.builtin.copy:
+      content: |
+            #!/bin/sh
+
+            if [ -f /tmp/cathedral.pid ]; then
+                echo "Stopping cathedral"
+                kill -QUIT `cat /tmp/cathedral.pid`
+            fi
+
+            while [ -f /tmp/cathedral.pid ]; do
+                echo "waiting for cathedral to die"
+                sleep 1
+            done
+
+            echo "starting cathedral"
+            sanctum -d -c /home/cathedral/cathedral.conf
+            echo "result: $?"
+
+      dest: "/home/cathedral/control.sh"
+      owner: root
+      group: root
+      mode: "0500"
+
+  - name: Setup the syncretism directories
+    ansible.builtin.file:
+      state: directory
+      dest: "{{ item }}"
+      owner: cathedral
+      group: cathedral
+      mode: "0700"
+    loop:
+    - /etc/syncretism
+
+  - name: Copy the syncretism secret
+    ansible.builtin.copy:
+      content: "{{ syncretism_secret | b64decode }}"
+      dest: "/etc/syncretism/syncretism.secret"
+      owner: cathedral
+      group: cathedral
+      mode: "0400"
+
+  - name: Setup syncretism crontab job
+    ansible.builtin.cron:
+      user: "cathedral"
+      name: "sync cathedral settings"
+      minute: "*"
+      job: "syncretism -c -k /etc/syncretism/syncretism.secret {{syncretism_master}} /home/shared /home/cathedral/shared"

@@ -1,0 +1,30 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -ne 1 ]; then
+	echo "Usage: reliquary-device-list flock"
+
+	echo ""
+	echo "Lists all devices currently registered under the given flock."
+
+	exit 1
+fi
+
+resp=`curl -s --show-error --fail -H "x-token: $TOKEN" $API/device/list/$1`
+
+if [ $? -eq 0 ]; then
+	echo $resp
+else
+	echo "something went wrong: $resp"
+fi
+

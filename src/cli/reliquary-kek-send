@@ -1,0 +1,53 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 4 ] ; then
+	echo "Usage: reliquary-kek-send flock kek-id peer-cs-id /path/to/kek"
+
+	echo ""
+	echo "Use cephas to send the KEK to a peer over a sanctum tunnel."
+	echo ""
+	echo "The kek-id is the assigned kek-id to the client device."
+	echo "The peer-cs-id is the assigned cathedral id for the client"
+	echo ""
+	echo "There is an obvious chicken and egg problem here, you need to"
+	echo "supply a client with a KEK, but physical distribution is not"
+	echo "always easy. Even if its the safest."
+	echo ""
+	echo "Cephas allows you to use a normal sanctum tunnel to send the KEK."
+	echo "This tunnel uses a shared secret derived from a strong passphrase"
+	echo "in combination with the normal ECDH+ML-KEM exchange."
+	echo ""
+	echo "Use physical distribution when possible."
+
+	exit 1
+fi
+
+if [ ! -f /usr/local/bin/cephas ]; then
+	echo "No cephas binary installed"
+	exit 1
+fi
+
+if [ ! -f $DIR/$1/device_kek ]; then
+	echo "Configuration for $1 is not complete"
+	exit 1
+fi
+
+if [ ! -f $4 ]; then
+	echo "The kek $4 does not exists"
+	exit 1
+fi
+
+kek=`cat $DIR/$1/device_kek`
+id=`cat $DIR/$1/cathedral_id`
+cathedral=`cat $DIR/cathedral`
+
+cephas -l $id -r $3 -f $1 -t $kek$2 \
+    -o $DIR/$1/cosk-$id -s $DIR/$1/id-$id $cathedral send $4

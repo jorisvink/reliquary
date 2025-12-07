@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<link rel="stylesheet" href="https://reliquary.se/reliquary.css">
+
+<style>
+img {
+    width: 64px;
+    height: auto;
+}
+
+input {
+    width: 650px;
+    height: 36px;
+    padding: 5px;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    background-color: rgba(251, 174, 210, 0.25);
+}
+
+button {
+    width: 240px;
+    height: 36px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    margin-bottom: 25px;
+    color: white;
+    background-color: rgba(251, 174, 210, 0.25);
+}
+
+.login {
+    margin-top: 25px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="top">
+<img src="https://reliquary.se/reliquary.png">
+<span class="reliquary">
+The Reliquary
+<br>
+Secure tunnels between your devices
+<br>
+for hackers, by hackers
+</span>
+</div>
+
+<div class="reliquary-logo">
+<img src="https://reliquary.se/reliquary.png">
+</div>
+
+<div class="wrapper">
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>Login to your account</strong>
+<span class="cross">+</span>
+</span>
+
+<div class="login" style="text-align: center">
+<form method="POST" action="/account/login">
+<input type="password" placeholder="ACCOUNT-KEY" name="account">
+<br>
+<br>
+<button>Submit</button>
+</form>
+</div>
+</div>
+
+</div>
+</body>
+
+</html>

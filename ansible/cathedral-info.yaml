@@ -1,0 +1,12 @@
+---
+- name: Show information on running cathedrals
+  hosts: cathedrals
+
+  tasks:
+  - name: obtain cathedral processes
+    shell: ps -ax -o pid,cmd,rss,size | grep "cathedral \["
+    register: procs
+
+  - name: show cathedral processes
+    ansible.builtin.debug:
+        var: procs.stdout_lines

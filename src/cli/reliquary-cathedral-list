@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -ne 0 ]; then
+	echo "Usage: reliquary-cathedral-list"
+	echo ""
+	echo "Lists all cathedrals available in this reliquary."
+	echo ""
+	echo "You can reconfigure tunnels to use whichever cathedral and"
+	echo "your tunnels will keep working."
+	echo ""
+	exit 1
+fi
+
+curl -s --show-error --fail -H "x-token: $TOKEN" $API/cathedrals

@@ -1,0 +1,16 @@
+---
+- name: Wipe identities from cathedrals
+  hosts: cathedrals
+  become: true
+
+  tasks:
+  - name: Setup syncretism crontab job
+    ansible.builtin.cron:
+      state: absent
+      user: "cathedral"
+      name: "sync cathedral settings"
+
+  - name: Wipe identities
+    ansible.builtin.file:
+        state: absent
+        path: /home/cathedral/shared/identities

@@ -1,0 +1,18 @@
+---
+- name: Restart api services
+  hosts: api
+  become: true
+  tasks:
+
+  - name: Restarting syncretism
+    become_user: syncretism
+    ansible.builtin.command:
+        /home/syncretism/control.sh
+
+  - name: Restarting db sync
+    ansible.builtin.command:
+        /home/api/sync.sh
+
+  - name: Restarting api
+    ansible.builtin.command:
+        /home/api/api.sh

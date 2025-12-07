@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 4 ] ; then
+	echo -n "Usage: reliquary-kek-recv flock "
+	echo "peer-kek-id peer-cs-id local-kek-id"
+
+	echo ""
+	echo "Use cephas to receeive the KEK to your flock adminstrator"
+	echo "over a sanctum tunnel."
+	echo ""
+	echo "Your flock administrator should've given you the peer-kek-id,"
+	echo "peer-cs-id and local-kek-id parameters."
+
+	exit 1
+fi
+
+if [ ! -f /usr/local/bin/cephas ]; then
+	echo "No cephas binary installed"
+	exit 1
+fi
+
+if [ -f $DIR/$1/device_kek ]; then
+	echo "Configuration for $1 ready completed"
+	exit 1
+fi
+
+id=`cat $DIR/$1/cathedral_id`
+cathedral=`cat $DIR/cathedral`
+
+cephas -l $id -r $3 -f $1 -t $4$2 \
+    -o $DIR/$1/cosk-$id -s $DIR/$1/id-$id $cathedral recv $DIR/$1/kek-0x$4
+
+echo $4 > $DIR/$1/device_kek

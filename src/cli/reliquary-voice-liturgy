@@ -1,0 +1,40 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 2 ]; then
+	echo "Usage: reliquary-voice-call [flock] [group]"
+	echo "Use confessions in liturgy mode."
+	echo "In liturgy mode you automatically establish voice tunnels"
+	echo "to everyone who comes also uses liturgy mode in your flock"
+	echo "creating one large group call."
+	exit 1
+fi
+
+if [ ! -f /usr/local/bin/confessions ]; then
+	echo "No confessions binary available"
+	exit 1
+fi
+
+if [ ! -f $DIR/$1/device_kek ]; then
+	echo "The device registration is not yet completed for $1 (no kek)"
+	exit 1
+fi
+
+flock=$1
+cathedral=`cat $DIR/cathedral`
+src=`cat $DIR/$flock/device_kek`
+cathedral_id=`cat $DIR/$flock/cathedral_id`
+
+echo "flock:$flock - src:$src - id:$cathedral_id"
+echo "starting confessions ... "
+
+/usr/local/bin/confessions liturgy -s $DIR/$flock/id-$cathedral_id \
+    -k $DIR/$flock/kek-0x$src -f $1 -i $cathedral_id -t 0x$src \
+    -o $DIR/$flock/cosk-$cathedral_id -g $2 $cathedral

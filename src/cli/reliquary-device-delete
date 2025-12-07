@@ -1,0 +1,31 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -ne 2 ]; then
+	echo "Usage: reliquary-device-delete flock device"
+
+	echo ""
+	echo "Remove a device from a flock."
+
+	exit 1
+fi
+
+resp=`curl -s --show-error --fail -H "x-token: $TOKEN" \
+    --data "" $API/device/$1/$2/delete`
+
+if [ $? -eq 0 ]; then
+	echo "$resp"
+else
+	echo "something went wrong: $resp"
+fi
+

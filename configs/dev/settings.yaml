@@ -1,0 +1,11 @@
+---
+p2p_sync: true
+nat_port: 4501
+api_hostname: vessel.reliquary.se
+api_initial_cathedral: 127.0.0.1:4500
+syncretism_master: 127.0.0.1:8760
+api_initial_cathedral: 127.0.0.1:4500
+priest_passphrase: $7$CU..../....WQ6mM0fmdBjnLRMdGKdO71$N0W8CS5r059VoraZQOgbPjL5kivFsR9VIwpv9n2qxr1
+
+ssh_keys:
+    - ssh-rsa ...

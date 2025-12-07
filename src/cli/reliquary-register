@@ -1,0 +1,75 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 1 ]; then
+	echo "Usage: reliquary-register [api]"
+	echo ""
+	echo "Initialise the reliquary repository locally by obtaining a"
+	echo "new account-key. This account-key is valid for 24 hours and"
+	echo "will automatically deactivate unless you extend its lifetime."
+	echo ""
+	echo "Extending its lifetime can be done via your account"
+	echo "page on which you login with your account-key."
+	echo ""
+	echo "The account page is found at https://[hostname]/account/login,"
+	echo "where hostname is the hostname for the API you configured."
+	echo ""
+	echo "After registering an account-key, you can use the other "
+	echo "reliquary commands-line tools."
+	echo ""
+	echo "Note that if you already have an account, you should be using"
+	echo "the reliquary-init tool instead on this device."
+
+	exit 1
+fi
+
+if [ -d $DIR ]; then
+	echo "Reliquary already appears to be initialised"
+	exit 1
+fi
+
+resp=`curl -s --show-error --fail --data "$2" $1/register`
+
+if [ $? -eq 0 ]; then
+	token=`echo $resp | jq -r .token`
+	account=`echo $resp | jq -r .account`
+	natport=`echo $resp | jq -r .natport`
+	cathedral=`echo $resp | jq -r .cathedral`
+
+	mkdir -p $DIR
+	echo $1 > $DIR/api
+	echo $token > $DIR/token
+	echo $natport > $DIR/natport
+	echo $cathedral > $DIR/cathedral
+
+	echo "Your new account-key is:"
+	echo "    $account"
+	echo ""
+	echo "This account-key is valid for 24 hours and will automatically"
+	echo "deactivate unless you extend its lifetime."
+	echo ""
+	echo "Extending its lifetime can be done via your account"
+	echo "page on which you login with your account-key."
+	echo ""
+	echo "The account page is found at https://[hostname]/account/login,"
+	echo "where hostname is the hostname for the API you configured."
+	echo ""
+	echo "Please store this key somewhere safe as we do not save it locally"
+	echo "on your disk and you will lose access to your account without it."
+	echo ""
+	echo "This key is used to manage your entire account, keep it secret."
+	echo ""
+	echo "By using reliquary you as the user accept that reliquary may not"
+	echo "be used for illegal activities or to distribute illegal content"
+	echo "and that you and you alone are responsible for the data you are"
+	echo "transmitting."
+else
+	echo "something went wrong: $token"
+fi

@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 1 ]; then
+	echo "Usage: reliquary-init [api]"
+	echo ""
+	echo "Initialises the reliquary repository using the given api."
+	echo ""
+
+	exit 1
+fi
+
+resp=`curl -s --show-error --fail --data "$2" $1/init`
+
+if [ $? -eq 0 ]; then
+	natport=`echo $resp | jq -r .natport`
+	cathedral=`echo $resp | jq -r .cathedral`
+
+	mkdir -p $DIR
+	touch $DIR/token
+	echo $1 > $DIR/api
+	echo $natport > $DIR/natport
+	echo $cathedral > $DIR/cathedral
+
+	echo "reliquary initialised"
+else
+	echo "something went wrong: $token"
+fi

@@ -1,0 +1,32 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -ne 2 ]; then
+	echo "Usage: reliquary-device-approve flock device"
+
+	echo ""
+	echo "Approves the use of a device in a flock."
+	echo "When a device is approved the required kek-id is returned."
+	echo ""
+
+	exit 1
+fi
+
+resp=`curl -s --show-error --fail -H "x-token: $TOKEN" \
+    --data "" $API/device/$1/$2/approve`
+
+if [ $? -eq 0 ]; then
+	echo "$resp"
+else
+	echo "something went wrong"
+fi

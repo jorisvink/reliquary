@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -ne 0 ]; then
+	echo "Usage: reliquary-flock-list"
+	echo ""
+	echo "Lists all the flocks that are available for you to use."
+	exit 1
+fi
+
+list=`curl -s --show-error --fail -H "x-token: $TOKEN" $API/flock/list`
+
+if [ $? -eq 0 ]; then
+	echo $list
+else
+	echo "something went wrong: $list"
+fi
