@@ -265,18 +265,26 @@ class Api:
         req.response(200, json.dumps(resp).encode())
 
     async def init(self, req):
-        res = await kore.dbquery("db",
-            SQL_ACCOUNT_FROM_KEY,
-            params=[req.body]
-        )
+        if len(req.body) != 0 and len(req.body) != 64:
+            req.response(400, b'invalid init request')
+            return
 
-        if len(res) != 1:
+        if len(req.body) == 0:
             resp = {
                 "cathedral": self.cathedral,
                 "natport": self.cathedral_nat
             }
 
             req.response(200, json.dumps(resp).encode())
+            return
+
+        res = await kore.dbquery("db",
+            SQL_ACCOUNT_FROM_KEY,
+            params=[req.body]
+        )
+
+        if len(res) != 1:
+            req.response(403, None)
             return
 
         account = res[0]["account_id"]
