@@ -2,7 +2,7 @@
 
 Ansible and shell scripts to manage reliquary.se.
 
-Comes with support or zero warranty, this is released as
+Comes with zero support and zero warranty, this is released as
 open-source so others can build upon it if they want too.
 
 ## Building
