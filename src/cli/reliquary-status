@@ -19,9 +19,6 @@ fi
 
 if [ ! -d $DIR ]; then
 	echo "This device does not appear to have a reliquary configuration."
-	echo ""
-	echo "Please run the following to get it setup:"
-	echo "    $ reliquary-init <api> <account key>"
 	exit 1
 fi
 
