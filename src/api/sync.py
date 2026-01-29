@@ -120,7 +120,6 @@ class Sync:
                 kore.log(kore.LOG_INFO, f"sync {self.counter} started")
                 flocks = await kore.dbquery("db", SQL_GET_FLOCKS_WITH_TIME_LEFT)
                 self.config_reset()
-                self.counter = self.counter + 1
                 self.config(f"# settings {self.counter}")
                 for flock in flocks:
                     await self.flock_sync(flock)
@@ -134,6 +133,7 @@ class Sync:
 
                 self.config_write()
                 kore.log(kore.LOG_INFO, f"sync {self.counter} completed")
+                self.counter = self.counter + 1
             except Exception as e:
                 kore.log(kore.LOG_NOTICE, f"sync failed: {e}")
 
