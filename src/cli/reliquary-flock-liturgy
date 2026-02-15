@@ -35,7 +35,9 @@ src=`cat $DIR/$1/device_kek`
 id=`cat $DIR/$1/cathedral_id`
 cathedral=`cat $DIR/cathedral`
 
+user=`whoami`
 host=`uname -s`
+
 if [ "$host" = "OpenBSD" ]; then
 	SUDO=doas
 else
@@ -44,7 +46,7 @@ fi
 
 $SUDO hymn liturgy $1-$src cathedral $cathedral \
     identity $id:$DIR/$1/id-$id kek $DIR/$1/kek-0x$src \
-    prefix $2 natport $natport group $3 cosk $DIR/$1/cosk-$id
+    prefix $2 natport $natport group $3 cosk $DIR/$1/cosk-$id user $user
 
 echo "A liturgy for $1 has been created."
 echo ""
