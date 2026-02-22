@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<link rel="stylesheet" href="https://reliquary.se/reliquary.css">
+
+<style>
+img {
+    width: 64px;
+    height: auto;
+}
+
+form {
+    display: inline-block;
+}
+
+div.content {
+    margin: 25px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+div.device {
+    width: 430px;
+    display: inline-block;
+}
+
+div.spacer {
+    display: inline-block;
+    width: 145px;
+}
+
+button {
+    width: 180px;
+    height: 36px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    margin-left: 25px;
+    margin-bottom: 25px;
+    color: white;
+    background-color: rgba(251, 174, 210, 0.25);
+}
+
+span.device {
+    color: grey;
+}
+
+.login {
+    margin-top: 25px;
+}
+</style>
+
+</style>
+</head>
+
+<body>
+
+<div class="top">
+<img src="https://reliquary.se/reliquary.png">
+<span class="reliquary">
+The Reliquary
+<br>
+Secure tunnels between your devices
+<br>
+for hackers, by hackers
+</span>
+</div>
+
+<div class="reliquary-logo">
+<img src="https://reliquary.se/reliquary.png">
+</div>
+
+<div class="wrapper">
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>{{flock}} devices</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+<a href="/account/">&lt; Back to account</a>
+</p>
+
+{% if devices|length > 0 %}
+
+{% for device in devices %}
+<div class="content">
+<div class="device">
+Device ID <span class="device">{{device.device_cathedral_id}}</span>
+{% if device.device_approved == 't' %}
+<br>
+Device KEK
+<span class="device">{{flock}}/kek-data/kek-0x{{device.kek_id}}</span>
+{% endif %}
+<br>
+Created <span class="device">{{device.created}}</span>
+</div>
+{% if device.device_approved == 'f' %}
+<form method="POST"
+ action="/account/flock/{{flock}}/{{device.device_cathedral_id}}/approve">
+<button style="width: 120px">APPROVE</button>
+</form>
+{% else %}
+<div class="spacer"></div>
+{% endif %}
+<form method="POST"
+ action="/account/flock/{{flock}}/{{device.device_cathedral_id}}/delete">
+<button style="width: 120px">DELETE</button>
+</form>
+</div>
+{% endfor %}
+
+{% else %}
+<p class="content">
+No devices have joined your flock yet.
+</p>
+{% endif %}
+</div>
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>DANGER ZONE</strong>
+<span class="cross">+</span>
+</span>
+
+<p class="content">
+If you choose to delete this flock, all devices will be immediately
+removed from it and the flock becomes entirely unusable.
+</p>
+
+<p class="content">
+Please note that the button below does not ask for
+confirmation, once you click it this flock and all associated devices are gone.
+</p>
+
+<p class="content">
+<form method="POST" action="/account/flock/{{flock}}/delete">
+<button>DELETE FLOCK</button>
+</form>
+</p>
+</div>
+
+</div>
+
+</body>
+
+</html>

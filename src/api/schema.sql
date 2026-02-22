@@ -36,7 +36,8 @@ CREATE TABLE devices (
     device_network serial references networks(network_id) on delete cascade,
     device_account serial references accounts(account_id) on delete cascade,
     device_network_token varchar(64) not null,
-    device_approved boolean not null default 'f'
+    device_approved boolean not null default 'f',
+    device_created int not null default EXTRACT(EPOCH FROM NOW()),
 );
 
 CREATE TABLE cathedrals (

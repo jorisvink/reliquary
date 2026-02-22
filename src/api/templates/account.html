@@ -96,6 +96,14 @@ You can manage your account its expiration from this account page. You
 can reset your expiration time by clicking the button below.
 </p>
 
+{% if expires == 0 %}
+<p class="content" style="color: red">
+<strong>Your account time has expired, please reset it below. The
+reliquary will not let you operate your devices or manage your account
+without any time left.</strong>
+</p>
+{% endif %}
+
 <p class="content">
 Time left: {{expires}} seconds
 </p>
@@ -115,11 +123,23 @@ Time left: {{expires}} seconds
 </span>
 
 <p class="content">
+You are using {{flocks_cur}}/{{flocks_max}} flocks.
+</p>
+
+<p class="content">
 {% for flock in flocks %}
-{{flock.id}}
+<a href="/account/flock/{{flock.id}}">{{flock.id}}</a>
 <br>
 {% endfor %}
 </p>
+
+{% if flocks_cur != flocks_max %}
+<p class="content">
+<form method="POST" action="/account/flock/create">
+<button>NEW FLOCK</button>
+</form>
+</p>
+{% endif %}
 </div>
 
 <div class="block">

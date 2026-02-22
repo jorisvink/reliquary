@@ -182,12 +182,14 @@ RETURNING
 
 SQL_DEVICE_LIST = """
 SELECT
-    device_kek, device_cathedral_id, device_approved
+    device_kek, device_cathedral_id, device_approved, device_created
 FROM
 devices
     JOIN networks ON networks.network_id = devices.device_network
 WHERE
     network_token = $1 AND network_owner = $2 AND device_account = $2
+ORDER BY
+    device_approved = 'f' DESC, device_kek ASC
 """
 
 SQL_DEVICE_LIST_ALL_FOR_NETWORK = """

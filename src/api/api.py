@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2025 Joris Vink <joris@sanctorum.se>
+# Copyright (c) 2025-2026 Joris Vink <joris@sanctorum.se>
 #
 # Permission to use, copy, modify, and distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -21,10 +21,20 @@ import json
 import jinja2
 import secrets
 
+from datetime import datetime
+
 from queries import *
 from ratelimit import RateLimit
 
 ACCOUNT_URLS = [
+    "/account/",
+    "/account/time",
+    "/account/delete",
+    "/account/logout",
+    "/account/flock/create"
+]
+
+ACCOUNT_URLS_EXPIRED = [
     "/account/",
     "/account/time",
     "/account/delete",
@@ -42,8 +52,12 @@ async def ratelimit(req):
     req.account = None
     req.account_max_flocks = None
 
+    match = re.findall("^/account/flock/.*$", req.path)
+    if req.path in ACCOUNT_URLS or match:
+        return True
+
     if not kore.app().ratelimit.check(req.connection.addr, req.path):
-        req.response(429, b'')
+        req.response(429, None)
         return False
 
 @kore.prerequest
@@ -55,7 +69,13 @@ async def token_fetch(req):
     if req.path in UNAUTHED_URLS or match:
         return
 
-    if req.path in ACCOUNT_URLS:
+    match = re.findall("^/account/flock/.*$", req.path)
+    if req.path in ACCOUNT_URLS or match:
+        is_web = True
+    else:
+        is_web = False
+
+    if is_web:
         web = 't'
         token = req.populate_cookies()
         token = req.cookie("token")
@@ -64,7 +84,7 @@ async def token_fetch(req):
         token = req.request_header("x-token")
 
     if token is None:
-        if req.path in ACCOUNT_URLS:
+        if is_web:
             req.response_header("location", "/account/login")
             req.response(301, b'')
         else:
@@ -74,7 +94,7 @@ async def token_fetch(req):
     res = await kore.dbquery("db", SQL_ACCOUNT_FROM_TOKEN, params=[token, web])
 
     if len(res) != 1:
-        if req.path in ACCOUNT_URLS:
+        if is_web:
             req.response_header("location", "/account/login")
             req.response(301, b'')
         else:
@@ -84,11 +104,13 @@ async def token_fetch(req):
     now = time.time()
     req.expires = int(res[0]["account_time_left"])
     if req.expires < now:
-        if req.path not in ACCOUNT_URLS:
+        if is_web is False:
             req.response(403, b'account expired')
             return False
-        else:
-            req.expires = 0
+        elif req.path not in ACCOUNT_URLS_EXPIRED:
+            req.response_header("location", "/account/")
+            req.response(302, None)
+            return False
     else:
         req.expires = req.expires - now
 
@@ -164,6 +186,17 @@ class Api:
         d.route("/account/delete", self.account_delete, methods=["post"])
         d.route("/account/logout", self.account_logout, methods=["post"])
 
+        d.route("/account/flock/create",
+            self.account_flock_create, methods=["post"])
+        d.route("^/account/flock/([a-f0-9]{16})$",
+            self.account_flock_manage, methods=["get"])
+        d.route("^/account/flock/([a-f0-9]{16})/delete$",
+            self.account_flock_delete, methods=["post"])
+        d.route("^/account/flock/([a-f0-9]{16})/([a-f0-9]{8})/approve$",
+            self.account_flock_device_approve, methods=["post"])
+        d.route("^/account/flock/([a-f0-9]{16})/([a-f0-9]{8})/delete$",
+            self.account_flock_device_delete, methods=["post"])
+
         d.route("/account/login", self.account_login, methods=["get", "post"],
             post={
                 "account": "^[0-9a-f]{64}$"
@@ -233,6 +266,42 @@ class Api:
             flocks.append(f)
 
         return flocks
+
+    async def device_approve_get_kek(self, req, flock, device):
+        devices = await kore.dbquery("db",
+            SQL_DEVICE_LIST_ALL_FOR_NETWORK,
+            params=[flock]
+        )
+
+        keks = [True] * 256
+        keks[0] = False
+
+        for d in devices:
+            kek = int(d["device_kek"])
+            keks[kek] = False
+
+        kek = None
+        for idx, available in enumerate(keks):
+            if available:
+                kek_db = f"{idx}"
+                kek = f"{idx:02x}"
+                break
+
+        if kek is None:
+            msg = "No available KEKs left in flock"
+            return (False, msg)
+
+        res = await kore.dbquery("db",
+            SQL_DEVICE_APPROVE,
+            params=[flock, device, kek_db]
+        )
+
+        if len(res) != 1:
+            msg = f"{device} not found or already approved"
+        else:
+            msg = f"{device} approved, please supply it with {flock}/kek-data/kek-0x{kek}"
+
+        return (True, msg)
 
     async def register(self, req):
         account = secrets.token_hex(32)
@@ -425,47 +494,11 @@ class Api:
         req.response(200, msg.encode())
 
     async def device_approve(self, req, flock, device):
-        net = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock, req.account]
-        )
+        result, msg = await self.device_approve_get_kek(req, flock, device)
 
-        if len(net) != 1:
-            req.response(403, b'')
+        if result is False:
+            req.response(400, msg.encode())
             return
-
-        devices = await kore.dbquery("db",
-            SQL_DEVICE_LIST_ALL_FOR_NETWORK,
-            params=[flock]
-        )
-
-        keks = [True] * 256
-        keks[0] = False
-
-        for d in devices:
-            kek = int(d["device_kek"])
-            keks[kek] = False
-
-        kek = None
-        for idx, available in enumerate(keks):
-            if available:
-                kek_db = f"{idx}"
-                kek = f"{idx:02x}"
-                break
-
-        if kek is None:
-            req.response(400, b'no available KEK ids left')
-            return
-
-        res = await kore.dbquery("db",
-            SQL_DEVICE_APPROVE,
-            params=[flock, device, kek_db]
-        )
-
-        if len(res) != 1:
-            msg = f"{device} not found or already approved"
-        else:
-            msg = f"{device} approved, please supply it with {flock}/kek-data/kek-0x{kek}"
 
         req.response(200, msg.encode())
 
@@ -552,6 +585,7 @@ class Api:
             "id": req.account,
             "flocks": flocks,
             "account": req.account_key,
+            "flocks_cur": len(flocks),
             "flocks_max": req.account_max_flocks,
             "expires": int(req.expires)
         }))
@@ -562,7 +596,6 @@ class Api:
             params=[req.account]
         )
 
-        await kore.suspend(1100)
         req.response_header("location", "/account/")
         req.response(302, None)
 
@@ -572,8 +605,95 @@ class Api:
             params=[req.account]
         )
 
-        await kore.suspend(1100)
         req.response_header("location", "/account/")
+        req.response(302, None)
+
+    async def account_flock_create(self, req):
+        flocks = await self.flocks_for_account(req.account)
+        if len(flocks) < req.account_max_flocks:
+            net = secrets.token_hex(7) + "00"
+
+            await kore.dbquery("db",
+                SQL_NETWORK_CREATE,
+                params=[net, req.account]
+            )
+
+        req.response_header("location", "/account/")
+        req.response(302, None)
+
+    async def account_flock_delete(self, req, flock):
+        res = await kore.dbquery("db",
+            SQL_NETWORK_DELETE,
+            params=[flock, req.account]
+        )
+
+        req.response_header("location", "/account/")
+        req.response(302, None)
+
+    async def account_flock_manage(self, req, flock):
+        net = await kore.dbquery("db",
+            SQL_NETWORK_GET,
+            params=[flock, req.account]
+        )
+
+        if len(net) != 1:
+            req.response_header("location", "/account/")
+            req.response(302, None)
+            return
+
+        devices = await kore.dbquery("db",
+            SQL_DEVICE_LIST,
+            params=[flock, req.account]
+        )
+
+        for device in devices:
+            kek = int(device["device_kek"])
+            ts = int(device["device_created"])
+            date = datetime.utcfromtimestamp(ts)
+            device["kek_id"] = f"{kek:02x}"
+            device["created"] = date.strftime("%Y-%m-%d %H:%M:%S")
+
+        tmpl = self.templates.get_template("flock.html")
+        req.response_header("content-type", "text/html; charset=utf-8")
+        req.response(200, tmpl.stream({
+            "id": req.account,
+            "flock": flock,
+            "devices": devices,
+        }))
+
+    async def account_flock_device_approve(self, req, flock, device):
+        net = await kore.dbquery("db",
+            SQL_NETWORK_GET,
+            params=[flock, req.account]
+        )
+
+        if len(net) != 1:
+            req.response_header("location", "/account/")
+            req.response(302, None)
+            return
+
+        result, msg = await self.device_approve_get_kek(req, flock, device)
+
+        req.response_header("location", f"/account/flock/{flock}")
+        req.response(302, None)
+
+    async def account_flock_device_delete(self, req, flock, device):
+        net = await kore.dbquery("db",
+            SQL_NETWORK_GET,
+            params=[flock, req.account]
+        )
+
+        if len(net) != 1:
+            req.response_header("location", "/account/")
+            req.response(302, None)
+            return
+
+        res = await kore.dbquery("db",
+            SQL_DEVICE_DELETE,
+            params=[flock, device, req.account]
+        )
+
+        req.response_header("location", f"/account/flock/{flock}")
         req.response(302, None)
 
 koreapp = Api()
