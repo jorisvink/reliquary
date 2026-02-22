@@ -129,6 +129,8 @@
          dst: "/home/api/templates/account.html"
        - src: "{{reldir}}/api-files/templates/login.html"
          dst: "/home/api/templates/login.html"
+       - src: "{{reldir}}/api-files/templates/flock.html"
+         dst: "/home/api/templates/flock.html"
 
   - name: Create api start script
     ansible.builtin.copy:
