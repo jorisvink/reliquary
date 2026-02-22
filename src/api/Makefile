@@ -7,7 +7,8 @@ CODE=		$(API)/api.py \
 		$(API)/sync.py
 
 TEMPLATES=	$(API)/templates/login.html \
-		$(API)/templates/account.html
+		$(API)/templates/account.html \
+		$(API)/templates/flock.html
 
 all: $(API) $(CODE) $(TEMPLATES)
 
