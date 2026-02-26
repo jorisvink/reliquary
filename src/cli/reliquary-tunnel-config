@@ -8,8 +8,8 @@ fi
 
 DIR=$RELIQUARY
 
-if [ $# -ne 3 ] ; then
-	echo "Usage: reliquary-tunnel-config flock peer-kek-id ip/mask"
+if [ $# -ne 4 ] ; then
+	echo "Usage: reliquary-tunnel-config flock peer-kek-id ip/mask name"
 
 	echo ""
 	echo "Configures a tunnel between your device and the device specified"
@@ -18,7 +18,7 @@ if [ $# -ne 3 ] ; then
 
 	echo ""
 	echo "After doing this, a tunnel can be brought up using hymn:"
-	echo "    $ sudo hymn up <flock>-<src>-<dst>"
+	echo "    $ sudo hymn up <name>"
 
 	exit 1
 fi
@@ -44,14 +44,14 @@ fi
 
 $SUDO hymn add $1-$src-$2 tunnel $3 cathedral $cathedral \
     kek $DIR/$1/kek-0x$src identity $cathedral_id:$DIR/$1/id-$cathedral_id \
-    cosk $DIR/$1/cosk-$cathedral_id natport $natport user $user
+    cosk $DIR/$1/cosk-$cathedral_id natport $natport user $user name $4
 
-$SUDO hymn remembrance $1-$src-$2 on
+$SUDO hymn remembrance $4 on
 
-echo "Tunnel $1-$src-$2 has been configured."
+echo "Tunnel $4 ($1-$src-$2) has been configured."
 echo "Please use hymn from now on to bring it up, down or to delete it."
 echo ""
-echo "    $ sudo hymn up $1-$src-$2"
-echo "    $ sudo hymn down $1-$src-$2"
-echo "    $ sudo hymn status $1-$src-$2"
-echo "    $ sudo hymn del $1-$src-$2"
+echo "    $ sudo hymn up $4"
+echo "    $ sudo hymn down $4"
+echo "    $ sudo hymn status $4"
+echo "    $ sudo hymn del $4"
