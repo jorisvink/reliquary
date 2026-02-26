@@ -52,6 +52,16 @@ div.wrapper {
     margin-right: auto;
 }
 
+div.quick-action {
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 25px;
+    font-size: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.85);
+    box-shadow: 3px 3px rgba(0, 0, 0, 0.85);
+    background-color: rgba(64, 0, 128, 0.05);
+}
+
 ul {
     margin-left: 60px;
 }
