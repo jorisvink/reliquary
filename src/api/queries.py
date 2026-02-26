@@ -111,6 +111,15 @@ WHERE
     network_token = $1 AND network_owner = $2
 """
 
+SQL_NETWORK_GET_OWNER = """
+SELECT
+    network_id, network_owner
+FROM
+    networks
+WHERE
+    network_token = $1
+"""
+
 SQL_NETWORK_GET_UNAUTHED = """
 SELECT
     network_id, network_owner, network_token
@@ -138,6 +147,59 @@ SET
     network_ambry_update = EXTRACT(EPOCH FROM NOW())
 WHERE
     network_token = $1 and network_owner = $2
+"""
+
+SQL_XFLOCK_GET = """
+SELECT
+    xflock_id
+FROM
+    xflocks
+WHERE
+    xflock_src = $1 AND xflock_dst = $2 AND xflock_owner = $3
+"""
+
+SQL_XFLOCK_CREATE = """
+INSERT INTO xflocks
+    (xflock_src, xflock_src_token, xflock_dst, xflock_dst_token, xflock_owner)
+VALUES
+    ($1, $2, $3, $4, $5)
+"""
+
+SQL_XFLOCK_LIST = """
+SELECT
+    xflock_src_token as flock_a,
+    xflock_dst_token as flock_b
+FROM
+    xflocks
+WHERE
+    xflock_owner = $1
+"""
+
+SQL_XFLOCK_LIST_FOR_FLOCK = """
+WITH xfl AS (
+    SELECT
+        xflock_dst_token as other
+    FROM
+        xflocks
+    WHERE
+        xflock_src_token = $1 AND
+        xflock_owner = $2
+)
+
+SELECT
+    xfl.other, network_owner
+FROM
+    networks
+JOIN xfl ON xfl.other = networks.network_token
+"""
+
+SQL_XFLOCK_DELETE = """
+DELETE FROM
+    xflocks
+WHERE
+    xflock_src_token = $1 AND
+    xflock_dst_token = $2 AND
+    xflock_owner = $3
 """
 
 SQL_DEVICE_CREATE = """

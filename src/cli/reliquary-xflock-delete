@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -ne 2 ]; then
+	echo "Usage: reliquary-xflock-delete [flock_a] [flock_b]"
+	echo ""
+	echo "Deletes an exiseting cross-flock configuration."
+	exit 1
+fi
+
+resp=`curl -s --show-error --fail -H "x-token: $TOKEN" --data "" \
+    $API/xflock/$1/$2/delete`
+
+if [ $? -eq 0 ]; then
+	echo "$resp"
+else
+	echo "something went wrong: $resp"
+fi
+

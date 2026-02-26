@@ -26,6 +26,16 @@ CREATE TABLE networks (
     network_owner serial references accounts(account_id) on delete cascade
 );
 
+CREATE TABLE xflocks (
+    xflock_id serial primary key,
+    xflock_src serial references networks(network_id) on delete cascade,
+    xflock_src_token varchar(64) not null,
+    xflock_dst_token varchar(64) not null,
+    xflock_dst serial references networks(network_id) on delete cascade,
+    xflock_owner serial references accounts(account_id) on delete cascade,
+    xflock_ambry_update int not null default 0
+);
+
 CREATE TABLE devices (
     device_id serial primary key,
     device_kek int not null,
@@ -37,7 +47,7 @@ CREATE TABLE devices (
     device_account serial references accounts(account_id) on delete cascade,
     device_network_token varchar(64) not null,
     device_approved boolean not null default 'f',
-    device_created int not null default EXTRACT(EPOCH FROM NOW()),
+    device_created int not null default EXTRACT(EPOCH FROM NOW())
 );
 
 CREATE TABLE cathedrals (

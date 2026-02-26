@@ -26,7 +26,8 @@ FROM
     networks, accounts
 WHERE
     networks.network_owner = accounts.account_id AND
-    accounts.account_time_left > EXTRACT(epoch FROM now())
+    accounts.account_time_left > EXTRACT(epoch FROM now()) AND
+    networks.network_ambry_update != 0
 """
 
 SQL_GET_CATHEDRALS = """
@@ -47,6 +48,13 @@ FROM
     devices
 WHERE
     device_network_token = $1 AND device_approved = 't'
+"""
+
+SQL_GET_XFLOCKS = """
+SELECT
+    xflock_src_token, xflock_dst_token
+FROM
+    xflocks
 """
 
 class Sync:
@@ -118,18 +126,28 @@ class Sync:
         while True:
             try:
                 kore.log(kore.LOG_INFO, f"sync {self.counter} started")
-                flocks = await kore.dbquery("db", SQL_GET_FLOCKS_WITH_TIME_LEFT)
+
                 self.config_reset()
                 self.config(f"# settings {self.counter}")
+
+                flocks = await kore.dbquery("db", SQL_GET_FLOCKS_WITH_TIME_LEFT)
                 for flock in flocks:
                     await self.flock_sync(flock)
 
                 cathedrals = await kore.dbquery("db", SQL_GET_CATHEDRALS)
-                kore.log(kore.LOG_INFO, f"cathedrals = {cathedrals}")
                 for cathedral in cathedrals:
                     ip = cathedral["cathedral_ip"]
                     port = cathedral["cathedral_port"]
                     self.config(f"federate {ip} {port}")
+
+                xflocks = await self.resolve_xflocks()
+                for key, count in xflocks.items():
+                    if count != 2:
+                        continue
+                    flock_a, flock_b = key
+                    ambry = "/home/cathedral/shared/ambries/"
+                    ambry += f"ambry-{flock_a}_{flock_b}"
+                    self.config(f"xflock {flock_a} {flock_b} {ambry}")
 
                 self.config_write()
                 kore.log(kore.LOG_INFO, f"sync {self.counter} completed")
@@ -182,5 +200,31 @@ class Sync:
 
         self.config(f"\tambry /home/cathedral/shared/ambries/ambry-{token}")
         self.config("}")
+
+    async def resolve_xflocks(self):
+        xflocks = {}
+
+        res = await kore.dbquery("db", SQL_GET_XFLOCKS)
+
+        for row in res:
+            flock_a = int(row["xflock_src_token"], 16)
+            flock_b = int(row["xflock_dst_token"], 16)
+
+            if flock_b < flock_a:
+                tmp = row["xflock_src_token"]
+                flock_a = row["xflock_dst_token"]
+                flock_b = tmp
+            else:
+                flock_a = row["xflock_src_token"]
+                flock_b = row["xflock_dst_token"]
+
+            xt = (flock_a, flock_b)
+
+            if not xt in xflocks:
+                xflocks[xt] = 1
+            else:
+                xflocks[xt] = xflocks[xt] + 1
+
+        return xflocks
 
 koreapp = Sync()

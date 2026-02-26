@@ -17,7 +17,10 @@ TARGETS=$(CLI)/reliquary-ambry-upload \
 	$(CLI)/reliquary-register \
 	$(CLI)/reliquary-voice-call \
 	$(CLI)/reliquary-voice-liturgy \
-	$(CLI)/reliquary-tunnel-config
+	$(CLI)/reliquary-tunnel-config \
+	$(CLI)/reliquary-xflock-create \
+	$(CLI)/reliquary-xflock-delete \
+	$(CLI)/reliquary-xflock-list
 
 all: $(CLI) $(TARGETS)
 

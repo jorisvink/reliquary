@@ -52,7 +52,7 @@ async def ratelimit(req):
     req.account = None
     req.account_max_flocks = None
 
-    match = re.findall("^/account/flock/.*$", req.path)
+    match = re.findall("^/account/[x]?flock/.*$", req.path)
     if req.path in ACCOUNT_URLS or match:
         return True
 
@@ -69,7 +69,7 @@ async def token_fetch(req):
     if req.path in UNAUTHED_URLS or match:
         return
 
-    match = re.findall("^/account/flock/.*$", req.path)
+    match = re.findall("^/account/[x]?flock/.*$", req.path)
     if req.path in ACCOUNT_URLS or match:
         is_web = True
     else:
@@ -86,9 +86,9 @@ async def token_fetch(req):
     if token is None:
         if is_web:
             req.response_header("location", "/account/login")
-            req.response(301, b'')
+            req.response(302, None)
         else:
-            req.response(403, b'')
+            req.response(403, None)
         return False
 
     res = await kore.dbquery("db", SQL_ACCOUNT_FROM_TOKEN, params=[token, web])
@@ -96,9 +96,9 @@ async def token_fetch(req):
     if len(res) != 1:
         if is_web:
             req.response_header("location", "/account/login")
-            req.response(301, b'')
+            req.response(302, None)
         else:
-            req.response(403, b'')
+            req.response(403, None)
         return False
 
     now = time.time()
@@ -193,9 +193,12 @@ class Api:
         d.route("^/account/flock/([a-f0-9]{16})/delete$",
             self.account_flock_delete, methods=["post"])
         d.route("^/account/flock/([a-f0-9]{16})/([a-f0-9]{8})/approve$",
-            self.account_flock_device_approve, methods=["post"])
+           self.account_flock_device_approve, methods=["post"])
+
         d.route("^/account/flock/([a-f0-9]{16})/([a-f0-9]{8})/delete$",
             self.account_flock_device_delete, methods=["post"])
+        d.route("^/account/xflock/([a-f0-9]{16})/([a-f0-9]{16})/delete$",
+            self.account_xflock_delete, methods=["post"])
 
         d.route("/account/login", self.account_login, methods=["get", "post"],
             post={
@@ -217,6 +220,12 @@ class Api:
             self.device_approve, methods=["post"])
         d.route("^/v1/device/list/([a-f0-9]{16})$",
             self.device_list, methods=["get"])
+
+        d.route("/v1/xflock/list", self.xflock_list, methods=["get"])
+        d.route("^/v1/xflock/([a-f0-9]{16})/([a-f0-9]{16})/create",
+            self.xflock_create, methods=["post"])
+        d.route("^/v1/xflock/([a-f0-9]{16})/([a-f0-9]{16})/delete$",
+            self.xflock_delete, methods=["post"])
 
         d.route("/v1/init", self.init, methods=["post"])
         d.route("/v1/register", self.register, methods=["post"])
@@ -335,7 +344,7 @@ class Api:
 
     async def init(self, req):
         if len(req.body) != 0 and len(req.body) != 64:
-            req.response(400, b'invalid init request')
+            req.response(400, None)
             return
 
         if len(req.body) == 0:
@@ -404,7 +413,7 @@ class Api:
         )
 
         if len(res) != 1:
-            req.response(200, b'no such flock')
+            req.response(403, None)
         else:
             req.response(200, b'deleted')
 
@@ -453,7 +462,7 @@ class Api:
         )
 
         if len(net) != 1:
-            req.response(403, b'')
+            req.response(403, None)
             return
 
         res = await kore.dbquery("db",
@@ -478,7 +487,7 @@ class Api:
         )
 
         if len(net) != 1:
-            req.response(403, b'')
+            req.response(403, None)
             return
 
         res = await kore.dbquery("db",
@@ -509,13 +518,13 @@ class Api:
         )
 
         if len(net) != 1:
-            req.response(403, 'bad request')
+            req.response(403, None)
             return
 
         src = f"{self.ambry_path}/ambry-{flock}.tmp"
 
         if len(req.body) != 7542970 and len(req.body) != 3756730:
-            req.response(403, 'bad request, invalid length')
+            req.response(403, None)
             return
 
         with open(src, "wb") as f:
@@ -641,6 +650,11 @@ class Api:
             req.response(302, None)
             return
 
+        xfl = await kore.dbquery("db",
+            SQL_XFLOCK_LIST_FOR_FLOCK,
+            params=[flock, req.account]
+        )
+
         devices = await kore.dbquery("db",
             SQL_DEVICE_LIST,
             params=[flock, req.account]
@@ -658,6 +672,7 @@ class Api:
         req.response(200, tmpl.stream({
             "id": req.account,
             "flock": flock,
+            "xflocks": xfl,
             "devices": devices,
         }))
 
@@ -695,5 +710,110 @@ class Api:
 
         req.response_header("location", f"/account/flock/{flock}")
         req.response(302, None)
+
+    async def account_xflock_delete(self, req, flock_a, flock_b):
+        src = await kore.dbquery("db",
+            SQL_NETWORK_GET,
+            params=[flock_a, req.account]
+        )
+
+        if len(src) == 1:
+            await kore.dbquery("db",
+                SQL_XFLOCK_DELETE,
+                params=[flock_a, flock_b, req.account]
+            )
+
+        req.response_header("location", f"/account/flock/{flock_a}")
+        req.response(302, None)
+
+    async def xflock_list(self, req):
+        xfl = await kore.dbquery("db",
+            SQL_XFLOCK_LIST,
+            params=[req.account]
+        )
+
+        resp = {
+            "xflocks": xfl
+        }
+
+        req.response(200, json.dumps(resp).encode())
+
+    async def xflock_create(self, req, flock_a, flock_b):
+        src = await kore.dbquery("db",
+            SQL_NETWORK_GET,
+            params=[flock_a, req.account]
+        )
+
+        if len(src) != 1:
+            req.response(403, None)
+            return
+
+        dst = await kore.dbquery("db",
+            SQL_NETWORK_GET_OWNER,
+            params=[flock_b]
+        )
+
+        if len(dst) != 1:
+            req.response(403, None)
+            return
+
+        src_id = src[0]["network_id"]
+        dst_id = dst[0]["network_id"]
+        dst_owner = dst[0]["network_owner"]
+
+        xfl = await kore.dbquery("db",
+            SQL_XFLOCK_GET,
+            params=[src_id, dst_id, req.account]
+        )
+
+        if len(xfl) != 0:
+            xfl = await kore.dbquery("db",
+                SQL_XFLOCK_GET,
+                params=[dst_id, src_id, dst_owner]
+            )
+
+            if len(xfl) == 1:
+                resp = "The xflock is already established"
+            else:
+                resp = "Ask the other party to run:\n" \
+                      f"    $ reliquary-xflock-create {flock_b} {flock_a}"
+
+            req.response(200, resp.encode())
+            return
+
+        await kore.dbquery("db",
+            SQL_XFLOCK_CREATE,
+            params=[src_id, flock_a, dst_id, flock_b, req.account]
+        )
+
+        xfl = await kore.dbquery("db",
+            SQL_XFLOCK_GET,
+            params=[dst_id, src_id, dst_owner]
+        )
+
+        if len(xfl) == 0:
+            resp = "Ask the other party to run:\n" \
+                  f"    $ reliquary-xflock-create {flock_b} {flock_a}"
+        else:
+            resp = "The xflock has been established"
+
+        req.response(200, resp.encode())
+
+    async def xflock_delete(self, req, flock_a, flock_b):
+        src = await kore.dbquery("db",
+            SQL_NETWORK_GET,
+            params=[flock_a, req.account]
+        )
+
+        if len(src) != 1:
+            req.response(403, None)
+            return
+
+        await kore.dbquery("db",
+            SQL_XFLOCK_DELETE,
+            params=[flock_a, flock_b, req.account]
+        )
+
+        req.response(200, b"The xflock binding has been removed")
 
 koreapp = Api()

@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+API=`cat $DIR/api`
+TOKEN=`cat $DIR/token`
+
+if [ $# -ne 2 ]; then
+	echo "Usage: reliquary-xflock-create [flock_a] [flock_b]"
+	echo ""
+	echo "Creates a new cross-flock configuration."
+	exit 1
+fi
+
+resp=`curl -s --show-error --fail -H "x-token: $TOKEN" --data "" \
+    $API/xflock/$1/$2/create`
+
+if [ $? -eq 0 ]; then
+	echo "$resp"
+else
+	echo "something went wrong: $resp"
+fi
+

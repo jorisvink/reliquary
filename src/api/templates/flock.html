@@ -42,6 +42,12 @@ button {
     background-color: rgba(251, 174, 210, 0.25);
 }
 
+input {
+    width: 135px;
+    height: 35px;
+    border: none;
+}
+
 span.device {
     color: grey;
 }
@@ -76,7 +82,7 @@ for hackers, by hackers
 <div class="block">
 <span class="title">
 <span class="cross">+</span>
-<strong>{{flock}} devices</strong>
+<strong>{{flock}}</strong>
 <span class="cross">+</span>
 </span>
 
@@ -121,6 +127,40 @@ Created <span class="device">{{device.created}}</span>
 {% else %}
 <p class="content">
 No devices have joined your flock yet.
+</p>
+{% endif %}
+</div>
+
+<div class="block">
+<span class="title">
+<span class="cross">+</span>
+<strong>Cross-flocks</strong>
+<span class="cross">+</span>
+</span>
+
+{% if xflocks|length > 0 %}
+<p class="content">
+This flock has cross-flock bindings to the flocks listed below:
+</p>
+
+{% for xfl in xflocks %}
+<div class="content">
+<div class="device">
+{% if xfl.network_owner == id %}
+<a href="/account/flock/{{xfl.other}}">{{xfl.other}}</a>
+{% else %}
+{{xfl.other}}
+{% endif %}
+</div>
+<div class="spacer"></div>
+<form method="POST" action="/account/xflock/{{flock}}/{{xfl.other}}/delete">
+<button style="width: 120px">REMOVE</button>
+</form>
+</div>
+{% endfor %}
+{% else %}
+<p class="content">
+This flock has no cross-flock bindings.
 </p>
 {% endif %}
 </div>
