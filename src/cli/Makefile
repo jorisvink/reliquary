@@ -20,7 +20,8 @@ TARGETS=$(CLI)/reliquary-ambry-upload \
 	$(CLI)/reliquary-tunnel-config \
 	$(CLI)/reliquary-xflock-create \
 	$(CLI)/reliquary-xflock-delete \
-	$(CLI)/reliquary-xflock-list
+	$(CLI)/reliquary-xflock-list \
+	$(CLI)/reliquary-xflock-tunnel
 
 all: $(CLI) $(TARGETS)
 
