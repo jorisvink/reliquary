@@ -136,6 +136,16 @@ class Api:
         self.loader = jinja2.FileSystemLoader("templates")
         self.templates = jinja2.Environment(loader=self.loader)
 
+    def allow(self, seccomp, name):
+        try:
+            seccomp.allow(name)
+        except Exception as e:
+            kore.log(kore.LOG_INFO, f"seccomp: {e}")
+
+    def seccomp(self, seccomp):
+        self.allow(seccomp, "renameat")
+        self.allow(seccomp, "rename")
+
     def configure(self, args):
         self.dbhost = os.getenv("DBHOST", default="/var/run/postgresql")
         kore.dbsetup("db", f"host={self.dbhost} dbname=accounts")
@@ -226,6 +236,9 @@ class Api:
             self.xflock_create, methods=["post"])
         d.route("^/v1/xflock/([a-f0-9]{16})/([a-f0-9]{16})/delete$",
             self.xflock_delete, methods=["post"])
+        d.route("^/v1/xflock/([a-f0-9]{16})/([a-f0-9]{16})/ambry$",
+            self.xflock_ambry_upload, methods=["post"],
+        )
 
         d.route("/v1/init", self.init, methods=["post"])
         d.route("/v1/register", self.register, methods=["post"])
@@ -275,6 +288,22 @@ class Api:
             flocks.append(f)
 
         return flocks
+
+    async def flock_exists_for_account(self, req, flock, web=False):
+        net = await kore.dbquery("db",
+            SQL_NETWORK_GET,
+            params=[flock, req.account]
+        )
+
+        if len(net) != 1:
+            if web:
+                req.response_header("location", "/account/")
+                req.response(302, None)
+            else:
+                req.response(403, None)
+            return None
+
+        return net
 
     async def device_approve_get_kek(self, req, flock, device):
         devices = await kore.dbquery("db",
@@ -456,13 +485,7 @@ class Api:
         req.response(200, json.dumps(resp).encode())
 
     async def device_list(self, req, flock):
-        net = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock, req.account]
-        )
-
-        if len(net) != 1:
-            req.response(403, None)
+        if await self.flock_exists_for_account(req, flock) is None:
             return
 
         res = await kore.dbquery("db",
@@ -481,13 +504,7 @@ class Api:
         req.response(200, json.dumps(resp).encode())
 
     async def device_delete(self, req, flock, device):
-        net = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock, req.account]
-        )
-
-        if len(net) != 1:
-            req.response(403, None)
+        if await self.flock_exists_for_account(req, flock) is None:
             return
 
         res = await kore.dbquery("db",
@@ -512,13 +529,7 @@ class Api:
         req.response(200, msg.encode())
 
     async def ambry_upload(self, req, flock):
-        net = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock, req.account]
-        )
-
-        if len(net) != 1:
-            req.response(403, None)
+        if await self.flock_exists_for_account(req, flock) is None:
             return
 
         src = f"{self.ambry_path}/ambry-{flock}.tmp"
@@ -640,14 +651,7 @@ class Api:
         req.response(302, None)
 
     async def account_flock_manage(self, req, flock):
-        net = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock, req.account]
-        )
-
-        if len(net) != 1:
-            req.response_header("location", "/account/")
-            req.response(302, None)
+        if await self.flock_exists_for_account(req, flock, web=True) is None:
             return
 
         xfl = await kore.dbquery("db",
@@ -677,14 +681,7 @@ class Api:
         }))
 
     async def account_flock_device_approve(self, req, flock, device):
-        net = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock, req.account]
-        )
-
-        if len(net) != 1:
-            req.response_header("location", "/account/")
-            req.response(302, None)
+        if await self.flock_exists_for_account(req, flock, web=True) is None:
             return
 
         result, msg = await self.device_approve_get_kek(req, flock, device)
@@ -693,14 +690,7 @@ class Api:
         req.response(302, None)
 
     async def account_flock_device_delete(self, req, flock, device):
-        net = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock, req.account]
-        )
-
-        if len(net) != 1:
-            req.response_header("location", "/account/")
-            req.response(302, None)
+        if await self.flock_exists_for_account(req, flock, web=True) is None:
             return
 
         res = await kore.dbquery("db",
@@ -712,16 +702,14 @@ class Api:
         req.response(302, None)
 
     async def account_xflock_delete(self, req, flock_a, flock_b):
-        src = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock_a, req.account]
-        )
+        src = await self.flock_exists_for_account(req, flock_a)
+        if src is None:
+            return
 
-        if len(src) == 1:
-            await kore.dbquery("db",
-                SQL_XFLOCK_DELETE,
-                params=[flock_a, flock_b, req.account]
-            )
+        await kore.dbquery("db",
+            SQL_XFLOCK_DELETE,
+            params=[flock_a, flock_b, req.account]
+        )
 
         req.response_header("location", f"/account/flock/{flock_a}")
         req.response(302, None)
@@ -739,13 +727,8 @@ class Api:
         req.response(200, json.dumps(resp).encode())
 
     async def xflock_create(self, req, flock_a, flock_b):
-        src = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock_a, req.account]
-        )
-
-        if len(src) != 1:
-            req.response(403, None)
+        src = await self.flock_exists_for_account(req, flock_a)
+        if src is None:
             return
 
         dst = await kore.dbquery("db",
@@ -800,13 +783,8 @@ class Api:
         req.response(200, resp.encode())
 
     async def xflock_delete(self, req, flock_a, flock_b):
-        src = await kore.dbquery("db",
-            SQL_NETWORK_GET,
-            params=[flock_a, req.account]
-        )
-
-        if len(src) != 1:
-            req.response(403, None)
+        src = await self.flock_exists_for_account(req, flock_a)
+        if src is None:
             return
 
         await kore.dbquery("db",
@@ -815,5 +793,63 @@ class Api:
         )
 
         req.response(200, b"The xflock binding has been removed")
+
+    async def xflock_ambry_upload(self, req, flock_a, flock_b):
+        if len(req.body) != 7542970:
+            req.response(403, None)
+            return
+
+        src = await self.flock_exists_for_account(req, flock_a)
+        if src is None:
+            return
+
+        dst = await kore.dbquery("db",
+            SQL_NETWORK_GET_OWNER,
+            params=[flock_b]
+        )
+
+        if len(dst) != 1:
+            req.response(403, None)
+            return
+
+        src_id = src[0]["network_id"]
+        dst_id = dst[0]["network_id"]
+        dst_owner = dst[0]["network_owner"]
+
+        xfl = await kore.dbquery("db",
+            SQL_XFLOCK_GET,
+            params=[src_id, dst_id, req.account]
+        )
+
+        if len(xfl) != 1:
+            req.response(403, None)
+            return
+
+        xfl = await kore.dbquery("db",
+            SQL_XFLOCK_GET,
+            params=[dst_id, src_id, dst_owner]
+        )
+
+        if len(xfl) != 1:
+            req.response(403, None)
+            return
+
+        a_id = int(flock_a, 16)
+        b_id = int(flock_b, 16)
+
+        if b_id < a_id:
+            tmp = flock_a
+            flock_a = flock_b
+            flock_b = tmp
+
+        src = f"{self.ambry_path}/ambry-{flock_a}_{flock_b}.tmp"
+
+        with open(src, "wb") as f:
+            f.write(req.body)
+
+        dst = f"{self.ambry_path}/ambry-{flock_a}_{flock_b}"
+        os.rename(src, dst)
+
+        req.response(200, b'ambry uploaded')
 
 koreapp = Api()
