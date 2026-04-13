@@ -132,8 +132,8 @@
         tfc on
         {% endif %}
 
-        {% if encap_key is defined %}
-        encapsulation {{ encap_key }}
+        {% if shroud is defined %}
+        shroud {{ shroud }}
         {% endif %}
 
         run control as root
