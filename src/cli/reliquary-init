@@ -2,9 +2,20 @@
 
 set -e
 
-if ! type jq &> /dev/null; then echo "jq dependency missing"; exit; fi
-if ! type xxd &> /dev/null; then echo "xxd dependency missing"; exit; fi
-if ! type curl &> /dev/null; then echo "curl dependency missing"; exit; fi
+if ! command -v jq > /dev/null 2>&1; then
+	echo "jq dependency missing";
+	exit;
+fi
+
+if ! command -v xxd > /dev/null 2>&1; then
+	echo "xxd dependency missing";
+	exit;
+fi
+
+if ! command -v curl > /dev/null 2>&1; then
+	echo "curl dependency missing";
+	exit;
+fi
 
 if [ -z "$RELIQUARY" ]; then
 	RELIQUARY=$HOME/.config/reliquary
