@@ -1,0 +1,41 @@
+#!/bin/sh
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+if [ $# -ne 1 ]; then
+	echo "Usage: reliquary-shroud-migrate [tunnel]"
+
+	echo ""
+	echo "Migrate an existing tunnel to the shrouded cathedrals."
+
+	exit 1
+fi
+
+if [ ! -d $DIR ]; then
+	echo "This device does not appear to have a reliquary configuration."
+	exit 1
+fi
+
+echo "cathedral.reliquary.se:4469" > $DIR/cathedral
+
+if [ "$host" = "OpenBSD" ]; then
+	SUDO=doas
+else
+	SUDO=sudo
+fi
+
+$SUDO hymn mtu $1 1374
+$SUDO hymn nat $1 4470
+$SUDO hymn shroud $1 on
+$SUDO hymn cathedral $1 cathedral.reliquary.se:4469
+
+echo ""
+echo "The tunnel '$1' has been migrated to the shrouded cathedrals."
+echo "Please restart it now:"
+echo "	$ $SUDO hymn restart $1"

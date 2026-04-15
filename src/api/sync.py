@@ -35,6 +35,17 @@ SELECT
     cathedral_ip, cathedral_port
 FROM
     cathedrals
+WHERE
+    cathedral_shrouded = 't'
+"""
+
+SQL_GET_CATHEDRALS_OLD = """
+SELECT
+    cathedral_ip, cathedral_port
+FROM
+    cathedrals
+WHERE
+    cathedral_shrouded = 'f'
 """
 
 SQL_GET_DEVICES_PER_FLOCK = """
@@ -84,7 +95,8 @@ class Sync:
             "SYNC_SHARED_PATH", default="shared"
         )
 
-        self.settings_path = f"{self.shared_path}/settings.conf"
+        self.settings_path_old = f"{self.shared_path}/settings.conf"
+        self.settings_path = f"{self.shared_path}/settings-shroud.conf"
 
         if self.deployment != "dev":
             kore.privsep("worker",
@@ -103,9 +115,9 @@ class Sync:
     def config(self, line):
         self.cfg += line + "\n"
 
-    def config_write(self):
+    def config_write(self, path):
         try:
-            tmppath = f"{self.settings_path}.tmp"
+            tmppath = f"{path}.tmp"
 
             fd = os.open(
                 path=tmppath,
@@ -118,7 +130,7 @@ class Sync:
             with open(fd, "w") as f:
                 f.write(self.cfg)
 
-            os.rename(tmppath, self.settings_path)
+            os.rename(tmppath, path)
         except Exception as e:
             kore.log(kore.LOG_NOTICE, f"failed to write settings {e}")
 
@@ -134,12 +146,6 @@ class Sync:
                 for flock in flocks:
                     await self.flock_sync(flock)
 
-                cathedrals = await kore.dbquery("db", SQL_GET_CATHEDRALS)
-                for cathedral in cathedrals:
-                    ip = cathedral["cathedral_ip"]
-                    port = cathedral["cathedral_port"]
-                    self.config(f"federate {ip} {port}")
-
                 xflocks = await self.resolve_xflocks()
                 for key, count in xflocks.items():
                     if count != 2:
@@ -149,7 +155,24 @@ class Sync:
                     ambry += f"ambry-{flock_a}_{flock_b}"
                     self.config(f"xflock {flock_a} {flock_b} {ambry}")
 
-                self.config_write()
+                cfg = self.cfg
+                cathedrals = await kore.dbquery("db", SQL_GET_CATHEDRALS_OLD)
+                for cathedral in cathedrals:
+                    ip = cathedral["cathedral_ip"]
+                    port = cathedral["cathedral_port"]
+                    self.config(f"federate {ip} {port}")
+
+                self.config_write(self.settings_path_old)
+
+                self.cfg = cfg
+                cathedrals = await kore.dbquery("db", SQL_GET_CATHEDRALS)
+                for cathedral in cathedrals:
+                    ip = cathedral["cathedral_ip"]
+                    port = cathedral["cathedral_port"]
+                    self.config(f"federate {ip} {port}")
+
+                self.config_write(self.settings_path)
+
                 kore.log(kore.LOG_INFO, f"sync {self.counter} completed")
                 self.counter = self.counter + 1
             except Exception as e:

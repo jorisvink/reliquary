@@ -14,6 +14,7 @@ TARGETS=$(CLI)/reliquary-ambry-upload \
 	$(CLI)/reliquary-init \
 	$(CLI)/reliquary-login \
 	$(CLI)/reliquary-status \
+	$(CLI)/reliquary-shroud-migrate \
 	$(CLI)/reliquary-register \
 	$(CLI)/reliquary-voice-call \
 	$(CLI)/reliquary-voice-liturgy \

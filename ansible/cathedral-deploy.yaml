@@ -108,7 +108,7 @@
       mode: "0555"
       src: "{{reldir}}/syncretism"
 
-  - name: Setup the cathedral config
+  - name: Setup the cathedral config (old)
     ansible.builtin.copy:
       content: |
         mode cathedral
@@ -132,10 +132,6 @@
         tfc on
         {% endif %}
 
-        {% if shroud is defined %}
-        shroud {{ shroud }}
-        {% endif %}
-
         run control as root
         run cathedral as cathedral
         run purgatory-rx as purgatory
@@ -145,9 +141,50 @@
       group: cathedral
       mode: "0600"
 
-  - name: Setup the cathedral settings
+  - name: Setup the cathedral config
+    ansible.builtin.copy:
+      content: |
+        mode cathedral
+        instance cathedral
+
+        pidfile /tmp/cathedral-shroud.pid
+        local {{ ansible_ssh_host }}:4469
+        secret /home/cathedral/sync.secret
+        secretdir /home/cathedral/shared/identities
+        settings /home/cathedral/shared/settings-shroud.conf
+
+        {% if p2p_sync is defined %}
+        cathedral_p2p_sync yes
+        {% endif %}
+
+        cathedral_nat_port 4470
+
+        {% if tfc_on is defined %}
+        tfc on
+        {% endif %}
+
+        shroud yes
+
+        run control as root
+        run cathedral as cathedral
+        run purgatory-rx as purgatory
+        run purgatory-tx as purgatory
+      dest: "/home/cathedral/cathedral-shroud.conf"
+      owner: cathedral
+      group: cathedral
+      mode: "0600"
+
+  - name: Setup the cathedral settings (old)
     ansible.builtin.file:
       path: "/home/cathedral/shared/settings.conf"
+      owner: cathedral
+      group: cathedral
+      mode: "0600"
+      state: touch
+
+  - name: Setup the cathedral settings
+    ansible.builtin.file:
+      path: "/home/cathedral/shared/settings-shroud.conf"
       owner: cathedral
       group: cathedral
       mode: "0600"
@@ -167,17 +204,30 @@
             #!/bin/sh
 
             if [ -f /tmp/cathedral.pid ]; then
-                echo "Stopping cathedral"
+                echo "Stopping cathedral (old)"
                 kill -QUIT `cat /tmp/cathedral.pid`
+                while [ -f /tmp/cathedral.pid ]; do
+                    echo "waiting for cathedral (old) to die"
+                    sleep 1
+                done
             fi
 
-            while [ -f /tmp/cathedral.pid ]; do
-                echo "waiting for cathedral to die"
-                sleep 1
-            done
+            if [ -f /tmp/cathedral-shroud.pid ]; then
+                echo "Stopping cathedral-shroud"
+                kill -QUIT `cat /tmp/cathedral.pid`
 
-            echo "starting cathedral"
+                while [ -f /tmp/cathedral-shroud-shroud.pid ]; do
+                    echo "waiting for cathedral-shroud to die"
+                    sleep 1
+                done
+            fi
+
+            echo "starting cathedral (old)"
             sanctum -d -c /home/cathedral/cathedral.conf
+            echo "result: $?"
+
+            echo "starting cathedral-shroud"
+            sanctum -d -c /home/cathedral/cathedral-shroud.conf
             echo "result: $?"
 
       dest: "/home/cathedral/control.sh"

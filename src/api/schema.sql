@@ -54,7 +54,8 @@ CREATE TABLE cathedrals (
     cathedral_id serial primary key,
     cathedral_ip varchar(15) not null,
     cathedral_port int not null,
-    cathedral_descr varchar(64) not null default ''
+    cathedral_descr varchar(64) not null default '',
+    cathedral_shrouded boolean default false
 );
 
 -- GRANT SELECT ON ALL TABLES IN SCHEMA public TO cathedral;
