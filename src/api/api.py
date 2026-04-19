@@ -158,7 +158,7 @@ class Api:
         self.ratelimit = RateLimit(self)
         self.domain = os.getenv("API_DOMAIN", default="*")
         self.deployment = os.getenv("API_DEPLOYMENT", default="dev")
-        self.cathedral_nat = os.getenv("API_CATHEDRAL_NAT", default="4501")
+        self.cathedral_nat = os.getenv("API_CATHEDRAL_NAT", default="4470")
         self.cathedral = os.getenv("API_CATHEDRAL", default="127.0.0.1:4500")
         self.ambry_path = os.getenv("API_AMBRY_PATH", default="shared/ambries")
 
