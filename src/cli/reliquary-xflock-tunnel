@@ -47,7 +47,8 @@ fi
 
 $SUDO hymn add $1:$2-$src-$3 tunnel $4 cathedral $cathedral \
     kek $DIR/$1/kek-0x$src identity $cathedral_id:$DIR/$1/id-$cathedral_id \
-    cosk $DIR/$1/cosk-$cathedral_id natport $natport user $user name $5
+    cosk $DIR/$1/cosk-$cathedral_id natport $natport user $user name $5 \
+    shroud yes
 
 $SUDO hymn remembrance $5 on
 
