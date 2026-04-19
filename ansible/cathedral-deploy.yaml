@@ -124,9 +124,7 @@
         cathedral_p2p_sync yes
         {% endif %}
 
-        {% if nat_port is defined %}
-        cathedral_nat_port {{nat_port}}
-        {% endif %}
+        cathedral_nat_port 4501
 
         {% if tfc_on is defined %}
         tfc on
@@ -157,7 +155,7 @@
         cathedral_p2p_sync yes
         {% endif %}
 
-        cathedral_nat_port 4470
+        cathedral_nat_port {{ nat_port }}
 
         {% if tfc_on is defined %}
         tfc on
