@@ -143,7 +143,7 @@
     ansible.builtin.copy:
       content: |
         mode cathedral
-        instance cathedral
+        instance shr-cathedral
 
         pidfile /tmp/cathedral-shroud.pid
         local {{ ansible_ssh_host }}:4469
@@ -212,9 +212,9 @@
 
             if [ -f /tmp/cathedral-shroud.pid ]; then
                 echo "Stopping cathedral-shroud"
-                kill -QUIT `cat /tmp/cathedral.pid`
+                kill -QUIT `cat /tmp/cathedral-shroud.pid`
 
-                while [ -f /tmp/cathedral-shroud-shroud.pid ]; do
+                while [ -f /tmp/cathedral-shroud.pid ]; do
                     echo "waiting for cathedral-shroud to die"
                     sleep 1
                 done
@@ -223,6 +223,8 @@
             echo "starting cathedral (old)"
             sanctum -d -c /home/cathedral/cathedral.conf
             echo "result: $?"
+
+            sleep 1
 
             echo "starting cathedral-shroud"
             sanctum -d -c /home/cathedral/cathedral-shroud.conf
