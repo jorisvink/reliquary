@@ -172,6 +172,48 @@
       group: cathedral
       mode: "0600"
 
+  - name: Setup systemd for cathedral (old)
+    ansible.builtin.file:
+      content: |
+        [Unit]
+        Description=cathedral-legacy
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        Type=exec
+        Restart=on-failure
+        RestartSec=10
+        ExecStart=sanctum -c /home/cathedral/cathedral.conf
+
+        [Install]
+        WantedBy=multi-user.target
+      dest: "/etc/systemd/system/cathedral-legacy.service"
+      owner: root
+      group: root
+      mode: "0600"
+
+  - name: Setup systemd for cathedral
+    ansible.builtin.file:
+      content: |
+        [Unit]
+        Description=cathedral
+        Wants=network-online.target
+        After=network-online.target
+
+        [Service]
+        Type=exec
+        Restart=on-failure
+        RestartSec=10
+        ExecStart=sanctum -c /home/cathedral/cathedral-shroud.conf
+
+        [Install]
+        WantedBy=multi-user.target
+      dest: "/etc/systemd/system/cathedral.service"
+      owner: root
+      group: root
+      mode: "0600"
+
   - name: Setup the cathedral settings (old)
     ansible.builtin.file:
       path: "/home/cathedral/shared/settings.conf"
@@ -195,45 +237,6 @@
       owner: cathedral
       group: cathedral
       mode: "0400"
-
-  - name: Create cathedral control script
-    ansible.builtin.copy:
-      content: |
-            #!/bin/sh
-
-            if [ -f /tmp/cathedral.pid ]; then
-                echo "Stopping cathedral (old)"
-                kill -QUIT `cat /tmp/cathedral.pid`
-                while [ -f /tmp/cathedral.pid ]; do
-                    echo "waiting for cathedral (old) to die"
-                    sleep 1
-                done
-            fi
-
-            if [ -f /tmp/cathedral-shroud.pid ]; then
-                echo "Stopping cathedral-shroud"
-                kill -QUIT `cat /tmp/cathedral-shroud.pid`
-
-                while [ -f /tmp/cathedral-shroud.pid ]; do
-                    echo "waiting for cathedral-shroud to die"
-                    sleep 1
-                done
-            fi
-
-            echo "starting cathedral (old)"
-            sanctum -d -c /home/cathedral/cathedral.conf
-            echo "result: $?"
-
-            sleep 1
-
-            echo "starting cathedral-shroud"
-            sanctum -d -c /home/cathedral/cathedral-shroud.conf
-            echo "result: $?"
-
-      dest: "/home/cathedral/control.sh"
-      owner: root
-      group: root
-      mode: "0500"
 
   - name: Setup the syncretism directories
     ansible.builtin.file:
@@ -259,3 +262,15 @@
       name: "sync cathedral settings"
       minute: "*"
       job: "syncretism -c -k /etc/syncretism/syncretism.secret {{syncretism_master}} /home/shared /home/cathedral/shared"
+
+  - name: Enable cathedral services (old)
+    ansible.builtin.systemd_service:
+      name: cathedral-legacy
+      enabled: true
+      masked: no
+
+  - name: Enable cathedral services
+    ansible.builtin.systemd_service:
+      name: cathedral
+      enabled: true
+      masked: no
