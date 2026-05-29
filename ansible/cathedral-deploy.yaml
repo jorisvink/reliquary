@@ -173,7 +173,7 @@
       mode: "0600"
 
   - name: Setup systemd for cathedral (old)
-    ansible.builtin.file:
+    ansible.builtin.copy:
       content: |
         [Unit]
         Description=cathedral-legacy
@@ -194,7 +194,7 @@
       mode: "0600"
 
   - name: Setup systemd for cathedral
-    ansible.builtin.file:
+    ansible.builtin.copy:
       content: |
         [Unit]
         Description=cathedral
