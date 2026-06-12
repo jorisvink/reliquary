@@ -182,8 +182,9 @@
 
         [Service]
         Type=exec
-        Restart=on-failure
+        Restart=always
         RestartSec=10
+        KillSignal=SIGQUIT
         ExecStart=sanctum -c /home/cathedral/cathedral.conf
 
         [Install]
@@ -203,8 +204,9 @@
 
         [Service]
         Type=exec
-        Restart=on-failure
+        Restart=always
         RestartSec=10
+        KillSignal=SIGQUIT
         ExecStart=sanctum -c /home/cathedral/cathedral-shroud.conf
 
         [Install]
