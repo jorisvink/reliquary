@@ -5,5 +5,11 @@
 
   tasks:
   - name: Restarting cathedral
-    ansible.builtin.command:
-        /home/cathedral/control.sh
+    ansible.builtin.service:
+      name: cathedral.service
+      state: restarted
+
+  - name: Restarting cathedral (legacy)
+    ansible.builtin.service:
+      name: cathedral-legacy.service
+      state: restarted
