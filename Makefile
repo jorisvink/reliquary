@@ -50,7 +50,7 @@ ubuntu-24.04:
 	podman run --env-file .reliquary-env -ti -v $(TOP):/home/builder \
 	    build-ubuntu-24.04 make
 	podman rm -a
-	#rm -f .reliquary-env
+	rm -f .reliquary-env
 
 podman-clean:
 	podman rm -a
