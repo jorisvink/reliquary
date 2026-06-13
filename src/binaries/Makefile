@@ -1,12 +1,9 @@
-BUILD?=build
-OUTPUT?=binaries
+TOP?=
+BUILD?=$(TOP)/build
+OUTPUT?=$(TOP)/binaries
 
 LIBSODIUM_VERSION=1.0.20
-LIBSODIUM?=$(TOP)/src/binaries/libsodium-$(LIBSODIUM_VERSION).tar.gz
-
-KORE_GIT?=https://github.com/jorisvink/kore
-SANCTUM_GIT?=https://github.com/jorisvink/sanctum
-SYNCRETISM_GIT?=https://github.com/jorisvink/syncretism
+LIBSODIUM=$(TOP)/src/binaries/libsodium-$(LIBSODIUM_VERSION).tar.gz
 
 TARGETS=	$(OUTPUT)/kore \
 		$(OUTPUT)/sanctum \
