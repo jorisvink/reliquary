@@ -55,84 +55,27 @@ simple shell scripts.
 </p>
 
 <p class="content">
-Check out our <a href="/guide.html">getting started</a> guide.
-</p>
-
-<p class="content">
-This community service is <strong>free</strong> for use as long as you adhere
-to our strict nothing-illegal policy.
-</p>
-</div>
-
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Technology</strong>
-<span class="cross">+</span>
-</span>
-</p>
-
-<p class="content">
-Reliquary is based on
-<a href="https://github.com/jorisvink/sanctum/" target="_blank">sanctum</a>.
-This daemon was designed from the ground up with strong privilege separation
-and sandboxing.
-</p>
-
-<p class="content">
-The sanctum daemon uses modern cryptography for traffic encryption
-and features a hybridised key exchange mixing a symmetrical shared
-secret, ECDH and ML-KM-1024 together to provide strong PQ-security
-guarantees for the confidentiality and integrity of your traffic.
-</p>
-
-<p class="content">
-A more detailed cryptographic description can be found in the sanctum
-repository inside of the <a href="https://github.com/jorisvink/sanctum/blob/master/docs/crypto.md" target="_blank">docs/crypto.md</a> file.
-</a>
-
-<p class="content">
-You are not limited to just sanctum, any
+Any sanctum based application will work with this cathedral network,
+be it sanctum itself or
 <a href="https://github.com/jorisvink/libkyrka" target="_blank">libkyrka</a>
-application can also leverage this infrastructure. For example the
-following sanctum based applications work out of the box:
+based applications such as:
 <a href="https://github.com/jorisvink/tier6" target="_blank">tier6</a>,
 <a href="https://github.com/jorisvink/confessions" target="_blank">confessions</a>
 and
 <a href="https://github.com/jorisvink/gospel" target="_blank">gospel</a>
 </ul>
 </p>
-</div>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>The Cathedrals</strong>
-<span class="cross">+</span>
-</span>
+<p class="content">
+Check out our <a href="/guide.html">getting started</a> guide to get your
+first two devices connected to each other.
 </p>
 
 <p class="content">
-We use the
-<a href="https://github.com/jorisvink/sanctum/blob/master/docs/cathedral.md"
-target="_blank">cathedral mode</a> of sanctum to provide an authenticated relay
-and a key distribution point. The authenticated relay is used for peer
-discovery and will facilitate the peer-to-peer connections if possible.
-</p>
-
-<p class="content">
-As a key distribution point, the cathedrals allow you to update your
-shared secrets for your devices.
-</p>
-
-<p class="content">
-<span class="notice">Important</span>: These are always wrapped with
-your per-device unique KEK and we do not see the plaintext keys.
-</p>
-
-<p class="content">
-The Reliquary provides multiple cathedrals to provide resilience in the
-case of an outage or if cathedrals drop offline unexpectedly.
+This community service is <strong>free</strong> for use as long as you adhere
+to our strict nothing-illegal policy. If you prefer running this yourself,
+the entire reliquary source is available on our github mirror
+<a href="https://github.com/jorisvink/reliquary/" target="_blank">here</a>.
 </p>
 </div>
 
@@ -153,38 +96,12 @@ The cathedrals cannot inject, modify or read any of your traffic
 that is relayed over them because they lack the keys to be able
 to do so, you own those keys.
 </p>
-
-<p class="content">
-A cathedral is only involved for a few seconds while the p2p discovery
-kicks in, or relays traffic if no p2p connections are possible.
-</p>
 </div>
 
 <div class="block">
 <span class="title">
 <span class="cross">+</span>
-<strong>Can I just build this myself?</strong>
-<span class="cross">+</span>
-</span>
-</p>
-
-<p class="content">
-Due to the fact that sanctum is truly open and free software licensed
-under the ISC-license you are able to build something like this entirely
-yourself. In fact we encourage you to do so if you have the know-how.
-</p>
-
-<p class="content">
-You can find all code required to run reliquary.se on our github mirror
-<a href="https://github.com/jorisvink/reliquary/" target="_blank">here</a>.
-</p>
-
-</div>
-
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Who runs this?</strong>
+<strong>Terms And Conditions</strong>
 <span class="cross">+</span>
 </span>
 </p>
@@ -195,15 +112,6 @@ of a few volunteers from across the globe. The Reliquary was started
 so that he and his protokol0x41 hacker friends could more easily
 setup tunnels between all their devices without having
 to use services like Tailscale or Zerotier.
-</p>
-</div>
-
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Terms And Conditions</strong>
-<span class="cross">+</span>
-</span>
 </p>
 
 <p class="content">
