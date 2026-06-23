@@ -114,6 +114,7 @@
         mode cathedral
         instance cathedral
 
+        tunnel 0.0.0.0/0 1373
         pidfile /tmp/cathedral.pid
         local {{ ansible_ssh_host }}:4500
         secret /home/cathedral/sync.secret
@@ -145,6 +146,7 @@
         mode cathedral
         instance shr-cathedral
 
+        tunnel 0.0.0.0/0 1373
         pidfile /tmp/cathedral-shroud.pid
         local {{ ansible_ssh_host }}:4469
         secret /home/cathedral/sync.secret
