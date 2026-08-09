@@ -131,3 +131,9 @@ td, th {
 
 tr:nth-child(even) {
 }
+
+.notice {
+    text-decoration: underline;
+    color: rgba(251, 174, 210, 0.9);
+    font-weight: bold;
+}
