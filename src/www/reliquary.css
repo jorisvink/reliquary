@@ -1,201 +1,133 @@
-body {
-    margin: 0px;
-    padding: 0px;
-    color: #ffffd7;
-    background-color: #101010;
-    font-weight: 200;
-    font-family: Verdana, sans-serif;
+@font-face {
+    font-family: "JetBrains Mono";
+    src: url("/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+    font-weight: normal;
 }
 
-p {
-    margin: 0px;
-    padding: 0px;
-}
-
-a, a:visited {
-    color: #fc4;
-}
-
-div.reliquary-logo {
-    display: none;
-}
-
-.notice {
-    text-decoration: underline;
-    color: rgba(251, 174, 210, 0.5);
+@font-face {
+    font-family: "JetBrains Mono";
+    src: url("/fonts/JetBrainsMono-Bold.woff2") format("woff2");
     font-weight: bold;
 }
 
-.cmd {
-    text-decoration: underline;
-    color: rgba(255, 0, 255, 1.0);
-    color: gray;
+body {
+    color: #ffffff;
+    background-color: #0a0814;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.85rem;
 }
 
-div.top {
-    padding-top: 50px;
-    width: 100%;
-    text-align: center;
-    margin-bottom: 35px;
+h2, h3 {
+    color: #4ade80;
 }
 
-div.top > div.intro {
-    width: 500px;
-    margin-left: auto;
-    margin-right: auto;
+.nav > .menu > h3 {
+    color: #c084fc;
 }
 
-div.wrapper {
-    text-align: left;
+.nav > .menu > a {
+    display: inline-block;
+    margin-bottom: 8px;
+    color: #94a3b8;
+}
+
+.content {
     width: 800px;
-    margin-left: auto;
-    margin-right: auto;
+    text-align: left;
+    display: table-cell;
 }
 
-div.quick-action {
-    padding: 15px;
-    border-radius: 5px;
-    margin-bottom: 25px;
-    font-size: 14px;
-    border: 1px solid rgba(0, 0, 0, 0.85);
-    box-shadow: 3px 3px rgba(0, 0, 0, 0.85);
-    background-color: rgba(64, 0, 128, 0.05);
+.content > h2, .content > h3 {
+    margin-top: 25px;
 }
 
-ul {
-    margin-left: 60px;
+.nav {
+    width: 275px;
+    padding-left: 25px;
+    display: table-cell;
 }
 
-li {
-    margin-bottom: 5px;
+.logo {
+    margin-left: -10px;
 }
 
 img {
-    vertical-align: middle;
-}
-
-img.reliquary {
     width: 64px;
-    margin-right: 15px;
+    height: auto;
 }
 
-div.reliquary-logo > a > img {
-    width: 64px;
-    margin-right: 15px;
-}
-
-div.block {
-    width: 798px;
-    border-radius: 5px;
-    margin-bottom: 25px;
-    border: 1px solid rgba(0, 0, 0, 0.85);
-    background-color: rgba(64, 0, 128, 0.05);
-    box-shadow: 3px 3px rgba(0, 0, 0, 0.85);
-}
-
-span.cross {
-    font-size: 24px;
-    color: #c49e1e;
-    font-weight: bold; 
-    padding-left: 5px;
-    padding-right: 5px;
-    margin-top: -5px;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-span.title {
+.sep {
+    background-color: #a855f7;
     width: 100%;
-    padding-top: 12px;
-    height: 36px;
-    color: #c49e1e;
-    font-weight: bold;
-    text-align: center;
-    display: inline-block;
-    border-radius: 0px 0px 0px 0px;
-    border-bottom: 1px solid black;
-    background-color: rgba(128, 0, 0, 0.15);
-    box-shadow: 0px 3px black;
+    height: 5px;
+    border-radius: 5px;
 }
 
-p.spacer {
-    margin-top: 45px;
+.sep2 {
+    background-color: #a855f7;
+    width: 100%;
+    height: 3px;
+    border-radius: 5px;
+    margin-top: 35px;
 }
 
-span.reliquary {
-    text-align: left;
-    display: inline-block;
-    vertical-align: middle;
+.release {
+    margin-bottom: 15px;
 }
 
-p.content {
-    margin: 25px;
+.menu {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.menu-sep {
+    color: #4ade80;
+}
+
+a, a:visited {
+    color: #c084fc;
+    text-decoration: none;
 }
 
 pre {
+    background: #14112a;
+    border-radius: 5px;
     padding: 15px;
-    color: #ffffd7;
-    max-width: 600px;
-    margin-left: 30px;
-    border-radius: 5px;
-    background-color: #252525;
-    background-color: rgba(232, 173, 170, 0.05);
-    font-family: monospace;
+    font-size: 0.70rem;
 }
 
-@media (max-width: 480px) {
-
-pre {
-    white-space: break-spaces;
-    max-width: 80%;
-    font-size: 10px;
-    margin-left: auto;
-    margin-right: auto;
+small {
+    color: #94a3b8;
 }
 
-ul {
-    margin-left: 20px;
+.release-entry {
+    margin-left: 25px;
 }
 
-div.reliquary-logo {
-    display: block;
-    margin-bottom: 25px;
-    text-align: center;
+.errata-entry {
+    margin-left: 25px;
 }
 
-div.top {
-    display: none;
+.errata-id {
+    color: #4ade80;
+    display: inline-block;
+    font-weight: bold;
 }
 
-div.top > div.intro {
-    width: 80%;
-    margin-left: auto;
-    margin-right: auto;
+.errata-reason {
+    margin-top: 0px;
 }
 
-div.wrapper {
-    width: 90%;
-}
-
-div.block {
+table {
     width: 100%;
+    border-collapse: collapse;
 }
 
-span.reliquary {
-    width: 300px;
+td, th {
+    border: 1px solid #c084fc;
+    text-align: left;
+    padding: 8px;
 }
 
-span.cross {
-    font-size: 14px;
-}
-
-span.title {
-    width: 100%;
-    font-size: 14px;
-}
-
-p.content {
-    margin: 25px;
-}
-
+tr:nth-child(even) {
 }

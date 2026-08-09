@@ -3,161 +3,103 @@
 
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-<title>The Reliquary</title>
+<title>The Reliquary || Introduction</title>
 <link rel="stylesheet" href="reliquary.css">
 </head>
 
 <body>
 
-<div class="top">
-<img class="reliquary" src="/reliquary.png">
-<span class="reliquary">
-The Reliquary
-<br>
-Secure tunnels between your devices
-<br>
-for hackers, by hackers
-</span>
+<div class="nav">
+    <div class="menu">
+        <h3>Reliquary</h3>
+        <a href="/">About</a>
+        <br>
+        <a href="https://reliquary.se/reliquary-cli.tar">Download Tools</a>
+        <br>
+        <a href="/terms.html">Terms And Conditions</a>
+        <br>
+        <h3>Account</h3>
+        <a href="https://vessel.reliquary.se/account/">Manage Account</a>
+        <br>
+        <h3>Guides</h3>
+        <a href="/guide.html">Getting Started</a>
+    </div>
 </div>
 
-<div class="reliquary-logo">
-<a href="/"><img src="/reliquary.png"></a>
-</div>
+<div class="content">
+    <div class="release">
+        Secure tunnels between your devices, for hackers, by hackers.
+    </div>
 
-<div class="wrapper">
+    <div class="sep"></div>
 
-<div class="quick-action">
-    <a href="https://vessel.reliquary.se/account/">Manage Account</a>
-    &nbsp;
-    <a href="https://reliquary.se/reliquary-cli.tar">Download Tools</a>
-</div>
+    <h2>Introduction</h2>
 
-<div class="block">
-<p>
-<span class="title">
-<span class="cross">+</span>
-<strong>Introduction</strong>
-<span class="cross">+</span>
-</span>
-</p>
+    <p>
+        The Reliquary is a shrouded
+        <a href="https://sanctorum.se" target="_blank">sanctum</a> cathedral
+        infrastructure which helps you establish PQ-secure P2P E2EE secure
+        links between any of your devices, even when behind NAT.
+    </p>
 
-<p class="content">
-The Reliquary is a shrouded
-<a href="https://sanctorum.se" target="_blank">sanctum</a> cathedral
-infrastructure which helps you establish PQ-secure P2P E2EE sanctum
-tunnels between any of your devices, even when behind NAT.
-</p>
+    <p>
+        The Reliquary provides an API which interacts with our cathedrals
+        and allows you to easily manage your groups of devices (called flocks)
+        using a handful of very simple shell scripts.
+    </p>
 
-<p class="content">
-The Reliquary provides an API which interacts with our cathedrals and allows
-you to easily manage your flocks and devices using a handful of very
-simple shell scripts.
-</p>
+    <p>
+        Any sanctum based application will work with this cathedral network,
+        be it sanctum itself or
+        <a href="https://github.com/jorisvink/libkyrka" target="_blank">libkyrka</a>
+        based applications such as:
+        <a href="https://github.com/jorisvink/tier6" target="_blank">tier6</a>,
+        <a href="https://github.com/jorisvink/confessions" target="_blank">confessions</a>
+        and
+        <a href="https://github.com/jorisvink/gospel" target="_blank">gospel</a>
+    </p>
 
-<p class="content">
-Any sanctum based application will work with this cathedral network,
-be it sanctum itself or
-<a href="https://github.com/jorisvink/libkyrka" target="_blank">libkyrka</a>
-based applications such as:
-<a href="https://github.com/jorisvink/tier6" target="_blank">tier6</a>,
-<a href="https://github.com/jorisvink/confessions" target="_blank">confessions</a>
-and
-<a href="https://github.com/jorisvink/gospel" target="_blank">gospel</a>
-</ul>
-</p>
+    <p>
+        Follow our <a href="/guide.html">guide</a> to get your
+        first two devices connected to each other.
+    </p>
 
-<p class="content">
-Check out our <a href="/guide.html">getting started</a> guide to get your
-first two devices connected to each other.
-</p>
+    <h2>Who runs Reliquary?</h2>
 
-<p class="content">
-This community service is <strong>free</strong> for use as long as you adhere
-to our strict nothing-illegal policy. If you prefer running this yourself,
-the entire reliquary source is available on our github mirror
-<a href="https://github.com/jorisvink/reliquary/" target="_blank">here</a>.
-</p>
-</div>
+    <p>
+        This community service is run by the
+        <a href="https://sanctorum.se/contributing.html" target="_blank">core
+        developers</a> of sanctum with the help of a few volunteers from across
+        the globe. The Reliquary was started so that they could more easily
+        setup tunnels between all their devices without having to use services
+        like Tailscale or Zerotier.
+    </p>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Do you have access to my traffic?</strong>
-<span class="cross">+</span>
-</span>
-</p>
+    <p>
+        Reliquary is <strong>free</strong>, please read our
+        <a href="/terms.html">terms and conditions</a>. If you prefer
+        self-hosting, the entire reliquary source is available on our github
+        mirror <a href="https://github.com/jorisvink/reliquary/" target="_blank">here</a>.
+    </p>
 
-<p class="content">
-No.
-</p>
+    <h2>Do you have access to my traffic?</h2>
 
-<p class="content">
-The cathedrals cannot inject, modify or read any of your traffic
-that is relayed over them because they lack the keys to be able
-to do so, you own those keys.
-</p>
-</div>
+    <p>
+        No.
+    </p>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Terms And Conditions</strong>
-<span class="cross">+</span>
-</span>
-</p>
+    <p>
+        The cathedrals cannot inject, modify or read any of your traffic
+        that is relayed over them because they lack the keys to be able
+        to do so, you own those keys.
+    </p>
 
-<p class="content">
-This community service is run by core developers of sanctum with the help
-of a few volunteers from across the globe. The Reliquary was started
-so that they could more easily setup tunnels between all their devices
-without having to use services like Tailscale or Zerotier.
-</p>
+    <h2>Contact</h2>
 
-<p class="content">
-By using The Reliquary you agree to the following:
-</p>
-
-<p class="content">
-This is a free-of-charge, community driven service, with zero warranty.
-It may shutdown at any given point without any prior notice or we may
-delete your account without giving notice.
-</p>
-
-<p class="content">
-We take no responsibility for any data that is transmitted over this service
-as we cannot read nor filter said data. When using this service you as the
-user accept that Reliquary may not be used for illegal activities or to
-distribute illegal content and that you and you alone are responsible
-for the data you are transmitting.
-</p>
-
-<p class="content">
-You will not perform harmful actions that take The Reliquary offline or
-cause service disruptions.
-</p>
-
-<p class="content">
-If one of your devices is behind a NAT type that prevents falling over
-to peer-to-peer,  your traffic will instead be relayed over one of our
-cathedrals (remember, we cannot read your traffic) and will be capped
-at 25mbit/sec.
-</p>
-
-</div>
-
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Contact</strong>
-<span class="cross">+</span>
-</span>
-</p>
-
-<p class="content">
-You can reach us at help@reliquary.se or find us on
-<a href="https://discord.gg/RRNtzJB7P3">discord</a>.
-</p>
-</div>
+    <p>
+        You can reach us at help@reliquary.se or find us on
+        <a href="https://discord.gg/RRNtzJB7P3">discord</a>.
+    </p>
 
 </div>
 </body>
