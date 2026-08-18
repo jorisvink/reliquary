@@ -111,6 +111,7 @@ async def token_fetch(req):
             req.response_header("location", "/account/")
             req.response(302, None)
             return False
+        req.expires = 0
     else:
         req.expires = req.expires - now
 
