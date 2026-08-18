@@ -2,170 +2,131 @@
 <html>
 
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 <link rel="stylesheet" href="https://reliquary.se/reliquary.css">
-
-<style>
-img {
-    width: 64px;
-    height: auto;
-}
-
-input {
-    width: 650px;
-    height: 36px;
-    padding: 5px;
-    border: none;
-    color: white;
-    border-radius: 5px;
-    background-color: rgba(251, 174, 210, 0.25);
-}
-
-button {
-    width: 180px;
-    height: 36px;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-    margin-left: 25px;
-    margin-bottom: 25px;
-    color: white;
-    background-color: rgba(251, 174, 210, 0.25);
-}
-
-.login {
-    margin-top: 25px;
-}
-</style>
-
-</style>
+<title>The Reliquary || Manage your account</title>
 </head>
 
 <body>
 
-<div class="top">
-<img src="https://reliquary.se/reliquary.png">
-<span class="reliquary">
-The Reliquary
-<br>
-Secure tunnels between your devices
-<br>
-for hackers, by hackers
-</span>
+<div class="nav">
+    <div class="menu">
+        <h3>Reliquary</h3>
+        <a href="/">About</a>
+        <br>
+        <a href="https://reliquary.se/reliquary-cli.tar">Download Tools</a>
+        <br>
+        <a href="/terms.html">Terms And Conditions</a>
+        <br>
+        <h3>Guides</h3>
+        <a href="/guide.html">Getting Started</a>
+        <br>
+        <h3>Account</h3>
+        <a href="/account/">Manage Account</a>
+    </div>
 </div>
 
-<div class="reliquary-logo">
-<img src="https://reliquary.se/reliquary.png">
 </div>
 
-<div class="wrapper">
+<div class="content">
+    <div class="release">
+        Secure tunnels between your devices, for hackers, by hackers.
+    </div>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Account</strong>
-<span class="cross">+</span>
-</span>
+    <div class="sep"></div>
 
-<p class="content">
-Welcome, {{account}}
-</p>
+    <h2>Account</h2>
 
-<p class="content">
-Your account can maximum have {{flocks_max}} flocks active.
-</p>
+    <p>
+        Welcome, {{account}}
+    </p>
 
-<p class="content">
-Your account is in good standing.
-</p>
+    <p>
+        Your account can maximum have {{flocks_max}} flocks active.
+    </p>
 
-<form method="POST" action="/account/logout">
-<button>LOGOUT</button>
-</form>
-</div>
+    <p>
+        Your account is in good standing.
+    </p>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Duration</strong>
-<span class="cross">+</span>
-</span>
+    <p>
+        <form method="POST" action="/account/logout">
+            <button class="click">LOGOUT</button>
+        </form>
+    </p>
 
-<p class="content">
-You can manage your account its expiration from this account page. You
-can reset your expiration time by clicking the button below.
-</p>
+    <div class="spacer"></div>
+
+    <h2>Duration</h2>
+
+    <p>
+        You can manage your account its expiration from this account page. You
+        can add time by clicking the button below.
+    </p>
 
 {% if expires == 0 %}
-<p class="content" style="color: red">
-<strong>Your account time has expired, please reset it below. The
-reliquary will not let you operate your devices or manage your account
-without any time left.</strong>
-</p>
+    <p style="color: red">
+        <strong>Your account time has expired, please reset it below. The
+        reliquary will not let you operate your devices or manage your account
+        without any time left.</strong>
+    </p>
 {% endif %}
 
-<p class="content">
-Time left: {{expires}} seconds
-</p>
+    <p>
+        Time left: {{expires}} seconds
+    </p>
 
-<p class="content">
-<form method="POST" action="/account/time">
-<button>RESET TIME</button>
-</form>
-</p>
-</div>
+    <p>
+        <form method="POST" action="/account/time">
+            <button class="click">ADD TIME</button>
+        </form>
+    </p>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Flocks</strong>
-<span class="cross">+</span>
-</span>
+    <div class="spacer"></div>
 
-<p class="content">
-You are using {{flocks_cur}}/{{flocks_max}} flocks.
-</p>
+    <h2>Flocks</h2>
 
-<p class="content">
+    <p>
+        You are using {{flocks_cur}}/{{flocks_max}} flocks.
+    </p>
+
+    <p>
 {% for flock in flocks %}
-<a href="/account/flock/{{flock.id}}">{{flock.id}}</a>
-<br>
+        <a href="/account/flock/{{flock.id}}"><strong>{{flock.id}}</strong></a>
+        <br>
 {% endfor %}
-</p>
+    </p>
 
 {% if flocks_cur != flocks_max %}
-<p class="content">
-<form method="POST" action="/account/flock/create">
-<button>NEW FLOCK</button>
-</form>
-</p>
+    <p>
+        <form method="POST" action="/account/flock/create">
+            <button class="click">CREATE FLOCK</button>
+        </form>
+    </p>
 {% endif %}
-</div>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>DANGER ZONE</strong>
-<span class="cross">+</span>
-</span>
+    <div class="spacer"></div>
 
-<p class="content">
-You may choose to delete your account at any time, this will permanently
-delete all flocks and devices from your account and you will no longer
-be able to use any devices.
-</p>
+    <h2>DANGER ZONE</h2>
 
-<p class="content">
-Please note that the button below does not ask for
-confirmation, once you click it your account and all associated data is gone.
-</p>
+    <p>
+        You may choose to delete your account at any time, this will permanently
+        delete all flocks and devices from your account and you will no longer
+        be able to use any devices.
+    </p>
 
-<p class="content">
-<form method="POST" action="/account/delete">
-<button>DELETE ACCOUNT</button>
-</form>
-</p>
-</div>
+    <p>
+        Please note that the button below does not ask for
+        confirmation, once you click it your account and all associated data
+        is <strong>gone</strong>.
+    </p>
+
+    <p>
+        <form method="POST" action="/account/delete">
+            <button class="click" style="background-color: red; color: white">
+                DELETE ACCOUNT
+            </button>
+        </form>
+    </p>
 
 </div>
 </body>

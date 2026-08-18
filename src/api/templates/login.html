@@ -2,15 +2,10 @@
 <html>
 
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>The Reliquary || Login to your account</title>
 <link rel="stylesheet" href="https://reliquary.se/reliquary.css">
 
 <style>
-img {
-    width: 64px;
-    height: auto;
-}
-
 input {
     width: 650px;
     height: 36px;
@@ -18,63 +13,59 @@ input {
     border: none;
     color: white;
     border-radius: 5px;
-    background-color: rgba(251, 174, 210, 0.25);
+    background-color: rgba(168, 85, 247, 0.25);
 }
 
 button {
-    width: 240px;
-    height: 36px;
+    width: 180px;
+    height: 30px;
     border: none;
     cursor: pointer;
     font-weight: bold;
-    margin-bottom: 25px;
-    color: white;
-    background-color: rgba(251, 174, 210, 0.25);
-}
-
-.login {
-    margin-top: 25px;
+    color: black;
+    background-color: #4ade80;
 }
 </style>
+
 </head>
 
 <body>
 
-<div class="top">
-<img src="https://reliquary.se/reliquary.png">
-<span class="reliquary">
-The Reliquary
-<br>
-Secure tunnels between your devices
-<br>
-for hackers, by hackers
-</span>
+<div class="nav">
+    <div class="menu">
+        <h3>Reliquary</h3>
+        <a href="/">About</a>
+        <br>
+        <a href="https://reliquary.se/reliquary-cli.tar">Download Tools</a>
+        <br>
+        <a href="/terms.html">Terms And Conditions</a>
+        <br>
+        <h3>Guides</h3>
+        <a href="/guide.html">Getting Started</a>
+        <br>
+        <h3>Account</h3>
+        <a href="https://vessel.reliquary.se/account/">Manage Account</a>
+    </div>
 </div>
 
-<div class="reliquary-logo">
-<img src="https://reliquary.se/reliquary.png">
+<div class="content">
+
+    <div class="release">
+        Secure tunnels between your devices, for hackers, by hackers.
+    </div>
+
+    <div class="sep"></div>
+
+    <h2>Login to your account</h2>
+
+    <form method="POST" action="/account/login">
+    <input type="password" placeholder="ACCOUNT-KEY" name="account">
+    <br>
+    <br>
+    <button>Submit</button>
+    </form>
 </div>
 
-<div class="wrapper">
-
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Login to your account</strong>
-<span class="cross">+</span>
-</span>
-
-<div class="login" style="text-align: center">
-<form method="POST" action="/account/login">
-<input type="password" placeholder="ACCOUNT-KEY" name="account">
-<br>
-<br>
-<button>Submit</button>
-</form>
-</div>
-</div>
-
-</div>
 </body>
 
 </html>

@@ -2,195 +2,149 @@
 <html>
 
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>The Reliquary || Manage {{flock}}</title>
 <link rel="stylesheet" href="https://reliquary.se/reliquary.css">
 
 <style>
-img {
-    width: 64px;
-    height: auto;
+button {
+}
+
+div.device {
+    width: 100%;
+    margin-bottom: 45px;
+}
+
+div.info {
+    margin-bottom: 5px;
+}
+
+span.info {
+    width: 120px;
+    display: inline-block;
+}
+
+span.device {
+    font-weight: bold;
+    display: inline-block;
 }
 
 form {
     display: inline-block;
 }
 
-div.content {
-    margin: 25px;
-    border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+.c1 {
+    color: #c084fc;
 }
-
-div.device {
-    width: 430px;
-    display: inline-block;
-}
-
-div.spacer {
-    display: inline-block;
-    width: 145px;
-}
-
-button {
-    width: 180px;
-    height: 36px;
-    border: none;
-    cursor: pointer;
-    font-weight: bold;
-    margin-left: 25px;
-    margin-bottom: 25px;
-    color: white;
-    background-color: rgba(251, 174, 210, 0.25);
-}
-
-input {
-    width: 135px;
-    height: 35px;
-    border: none;
-}
-
-span.device {
-    color: grey;
-}
-
-.login {
-    margin-top: 25px;
-}
-</style>
-
 </style>
 </head>
 
 <body>
 
-<div class="top">
-<img src="https://reliquary.se/reliquary.png">
-<span class="reliquary">
-The Reliquary
-<br>
-Secure tunnels between your devices
-<br>
-for hackers, by hackers
-</span>
+<div class="nav">
+    <div class="menu">
+        <h3>Reliquary</h3>
+        <a href="/">About</a>
+        <br>
+        <a href="https://reliquary.se/reliquary-cli.tar">Download Tools</a>
+        <br>
+        <a href="/terms.html">Terms And Conditions</a>
+        <br>
+        <h3>Guides</h3>
+        <a href="/guide.html">Getting Started</a>
+        <br>
+        <h3>Account</h3>
+        <a href="/account/">Manage Account</a>
+    </div>
 </div>
 
-<div class="reliquary-logo">
-<img src="https://reliquary.se/reliquary.png">
 </div>
 
-<div class="wrapper">
+<div class="content">
+    <div class="release">
+        Secure tunnels between your devices, for hackers, by hackers.
+    </div>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>{{flock}}</strong>
-<span class="cross">+</span>
-</span>
+    <div class="sep"></div>
 
-<p class="content">
-<a href="/account/">&lt; Back to account</a>
-</p>
-
-<p class="content">
-Clicking any delete button will immediately take action, there is no
-confirmation. Use with caution.
-</p>
+    <h2>{{flock}}</h2>
 
 {% if devices|length > 0 %}
 
 {% for device in devices %}
-<div class="content">
-<div class="device">
-Device ID <span class="device">{{device.device_cathedral_id}}</span>
+    <div class="device">
+        <div class="info">
+            <span class="info">Device ID</span><span class="device c1">{{device.device_cathedral_id}}</span>
 {% if device.device_approved == 't' %}
-<br>
-Device KEK
-<span class="device">{{flock}}/kek-data/kek-0x{{device.kek_id}}</span>
+        <br>
+            <span class="info">Device KEK</span><span class="device">{{flock}}/kek-data/kek-0x{{device.kek_id}}</span>
 {% endif %}
-<br>
-Created <span class="device">{{device.created}}</span>
-</div>
-{% if device.device_approved == 'f' %}
-<form method="POST"
- action="/account/flock/{{flock}}/{{device.device_cathedral_id}}/approve">
-<button style="width: 120px">APPROVE</button>
-</form>
-{% else %}
-<div class="spacer"></div>
-{% endif %}
-<form method="POST"
- action="/account/flock/{{flock}}/{{device.device_cathedral_id}}/delete">
-<button style="width: 120px">DELETE</button>
-</form>
-</div>
+            <br>
+            <span class="info">Created</span><span class="device" style="color: gray">{{device.created}}</span>
+        </div>
+        <span class="info"></span>
+{%- if device.device_approved == 'f' -%}
+        <form method="POST" action="/account/flock/{{flock}}/{{device.device_cathedral_id}}/approve"><button class="click">APPROVE</button></form>
+{% endif -%}
+        <form method="POST" action="/account/flock/{{flock}}/{{device.device_cathedral_id}}/delete"><button class="click" style="background-color: red; color: white">DELETE</button></form>
+    </div>
 {% endfor %}
 
 {% else %}
-<p class="content">
-No devices have joined your flock yet.
-</p>
+    <p>
+        No devices have joined your flock yet.
+    </p>
 {% endif %}
-</div>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>Cross-flocks</strong>
-<span class="cross">+</span>
-</span>
+    <h2>Cross-flocks</h2>
 
 {% if xflocks|length > 0 %}
-<p class="content">
-This flock has cross-flock bindings to the flocks listed below:
-</p>
+    <p>
+        This flock has cross-flock bindings to the flocks listed below:
+    </p>
 
 {% for xfl in xflocks %}
-<div class="content">
-<div class="device">
-{% if xfl.network_owner == id %}
-<a href="/account/flock/{{xfl.other}}">{{xfl.other}}</a>
-{% else %}
-{{xfl.other}}
-{% endif %}
-</div>
-<div class="spacer"></div>
-<form method="POST" action="/account/xflock/{{flock}}/{{xfl.other}}/delete">
-<button style="width: 120px">REMOVE</button>
-</form>
-</div>
+    <div class="content">
+        <div class="device">
+            {% if xfl.network_owner == id %}
+                <a href="/account/flock/{{xfl.other}}">{{xfl.other}}</a>
+                {% else %}
+                {{xfl.other}}
+            {% endif %}
+        </div>
+
+        <div class="spacer"></div>
+
+        <form method="POST" action="/account/xflock/{{flock}}/{{xfl.other}}/delete">
+            <button class="click" style="background-color: red; color: white">REMOVE</button>
+        </form>
+    </div>
 {% endfor %}
 {% else %}
-<p class="content">
-This flock has no cross-flock bindings.
-</p>
+    <p>
+        This flock has no cross-flock bindings.
+    </p>
 {% endif %}
-</div>
 
-<div class="block">
-<span class="title">
-<span class="cross">+</span>
-<strong>DANGER ZONE</strong>
-<span class="cross">+</span>
-</span>
+    <h2>DANGER ZONE</h2>
 
-<p class="content">
-If you choose to delete this flock, all devices will be immediately
-removed from it and the flock becomes entirely unusable.
-</p>
+    <p>
+        If you choose to delete this flock, all devices will be immediately
+        removed from it and the flock becomes entirely unusable.
+    </p>
 
-<p class="content">
-Please note that the button below does not ask for
-confirmation, once you click it this flock and all associated devices are gone.
-</p>
+    <p>
+        Please note that the button below does not ask for
+        confirmation, once you click it this flock and all
+        associated devices are gone.
+    </p>
 
-<p class="content">
-<form method="POST" action="/account/flock/{{flock}}/delete">
-<button>DELETE FLOCK</button>
-</form>
-</p>
-</div>
+    <p>
+        <form method="POST" action="/account/flock/{{flock}}/delete">
+        <button class="click" style="background-color: red; color: white">DELETE FLOCK</button>
+        </form>
+    </p>
 
 </div>
-
 </body>
 
 </html>
