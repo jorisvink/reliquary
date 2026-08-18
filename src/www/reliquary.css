@@ -137,3 +137,24 @@ tr:nth-child(even) {
     color: rgba(251, 174, 210, 0.9);
     font-weight: bold;
 }
+
+button.click {
+    width: 180px;
+    height: 30px;
+    border: none;
+    font-weight: bold;
+    color: black;
+    background-color: #4ade80;
+}
+
+button {
+    cursor: pointer;
+    text-decoration: none;
+    background-color: transparent;
+    color: #94a3b8;
+    border: none;
+}
+
+.spacer {
+    height: 15px;
+}
