@@ -247,8 +247,8 @@ cmd_ambry_upload() {
 	if [ $# -ne 2 ]; then
 		echo "Usage: rlq ambry upload flock /path/to/ambry"
 		echo ""
-		echo -n "Upload an Ambry bundle to the servers for distribution"
-		echo " to all of your devices."
+		echo -n "Upload an Ambry bundle to cathedrals for distribution"
+		echo " to your devices."
 		echo ""
 		echo -n "This Ambry bundle contains KEK-wrapped shared secrets"
 		echo " for your tunnels."
