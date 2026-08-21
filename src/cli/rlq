@@ -184,8 +184,8 @@ cathedral_id_exists() {
 
 require_reliquary_config() {
 	if [ ! -d $DIR ]; then
-		echo "This device does not appear to have a reliquary"
-		echo "configuration."
+		echo -n "This device does not appear to have a reliquary"
+		echo " configuration."
 		exit 1
 	fi
 }
@@ -221,6 +221,8 @@ get_os_sudo() {
 }
 
 cmd_ambry() {
+	require_reliquary_config
+
 	if [ $# -lt 1 ]; then
 		echo "Usage: rlq ambry <subcommand> [args...]"
 		echo ""
@@ -268,6 +270,8 @@ cmd_ambry_upload() {
 }
 
 cmd_cathedral() {
+	require_reliquary_config
+
 	if [ $# -lt 1 ]; then
 		echo "Usage: rlq cathedral <subcommand> [args...]"
 		echo ""
@@ -305,6 +309,8 @@ cmd_cathedral_list() {
 }
 
 cmd_device() {
+	require_reliquary_config
+
 	if [ $# -lt 1 ]; then
 		echo "Usage: rlq device <subcommand> [args...]"
 		echo ""
@@ -390,6 +396,8 @@ cmd_device_list() {
 }
 
 cmd_flock() {
+	require_reliquary_config
+
 	if [ $# -lt 1 ]; then
 		echo "Usage: rlq flock <subcommand> [args...]"
 		echo ""
@@ -622,6 +630,8 @@ cmd_init() {
 }
 
 cmd_kek() {
+	require_reliquary_config
+
 	if [ $# -lt 1 ]; then
 		echo "Usage: rlq kek <subcommand> [args...]"
 		echo ""
@@ -851,14 +861,14 @@ cmd_register() {
 }
 
 cmd_status() {
+	require_reliquary_config
+
 	if [ $# -ne 0 ]; then
 		echo "Usage: rlq status"
 		echo ""
 		echo "Displays this device its current reliquary status."
 		exit 1
 	fi
-
-	require_reliquary_config
 
 	echo "Reliquary is initiated."
 
@@ -888,6 +898,8 @@ cmd_status() {
 }
 
 cmd_tunnel() {
+	require_reliquary_config
+
 	if [ $# -lt 1 ]; then
 		echo "Usage: rlq tunnel <subcommand> [args...]"
 		echo ""
@@ -998,6 +1010,8 @@ cmd_tunnel_xflock() {
 }
 
 cmd_voice() {
+	require_reliquary_config
+
 	if [ $# -lt 1 ]; then
 		echo "Usage: rlq voice <subcommand> [args...]"
 		echo ""
@@ -1083,6 +1097,8 @@ cmd_voice_liturgy() {
 }
 
 cmd_xflock() {
+	require_reliquary_config
+
 	if [ $# -lt 1 ]; then
 		echo "Usage: rlq xflock <subcommand> [args...]"
 		echo ""
