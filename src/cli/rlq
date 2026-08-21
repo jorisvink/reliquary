@@ -1,0 +1,1249 @@
+#!/bin/bash
+#
+# Copyright (c) 2026 Joris Vink <joris@sanctorum.se>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+
+set -e
+
+if [ -z "$RELIQUARY" ]; then
+	RELIQUARY=$HOME/.config/reliquary
+fi
+
+DIR=$RELIQUARY
+
+check_dependency() {
+	if command -v $1 > /dev/null 2>&1; then
+		if [ "$2" = "quiet" ]; then
+			return 0
+		else
+			printf "    $1 \33[0;32m\xe2\x9c\x93\033[0m\n"
+			return 0
+		fi
+	else
+		if [ "$2" = "quiet" ]; then
+			return 1
+		else
+			printf "    $1 \33[0;31mx\033[0m\n"
+			return 1
+		fi
+	fi
+}
+
+require_dependency() {
+	if ! check_dependency $1 quiet; then
+		echo "$1 dependency missing"
+		exit 1
+	fi
+}
+
+print_help() {
+	echo "Usage: rlq <command> [args...]"
+	echo ""
+	echo "General commands:"
+	echo "  help                 Show this help message"
+	echo "  status               Show the local reliquary status"
+	echo "  dependencies         Checks if all dependencies are installed"
+	echo ""
+	echo "Account management:"
+	echo "  init                 Initialise reliquary without an account"
+	echo "  register             Register a new account with reliquary"
+	echo "  login                Login to reliquary with an account-key"
+	echo ""
+	echo "Device commands:"
+	echo "  device approve       Approve a device in a flock"
+	echo "  device delete        Remove a device from a flock"
+	echo "  device list          List devices in a flock"
+	echo ""
+	echo "Flock management:"
+	echo "  flock create         Create a new flock"
+	echo "  flock delete         Delete a flock"
+	echo "  flock join           Join a device into a flock"
+	echo "  flock list           List all available flocks"
+	echo "  flock liturgy        Configure a liturgy for a given flock"
+	echo ""
+	echo "Key management:"
+	echo "  ambry upload         Upload an Ambry bundle for distribution"
+	echo "  kek install          Install a KEK from a local file"
+	echo "  kek recv             Install a KEK from a remote distributor"
+	echo "  kek send             Submit a KEK to a peer"
+	echo ""
+	echo "Tunnel management:"
+	echo "  tunnel add           Setup a tunnel between two devices"
+	echo -n "  tunnel xadd          Setup a cross-flock tunnel between"
+	echo " two devies"
+	echo ""
+	echo "Confessions voice calls:"
+	echo "  voice call           Make a voice call to another peer"
+	echo "  voice liturgy        Make a group voice call with a liturgy"
+	echo ""
+	echo "Cross-flock management:"
+	echo "  xflock ambry         Upload cross-flock Ambry bundle"
+	echo "  xflock create        Create cross-flock configuration"
+	echo "  xflock delete        Delete cross-flock configuration"
+	echo "  xflock list          List all cross-flocks"
+	echo ""
+	echo "Cathedral management:"
+	echo "  cathedral list       List all available cathedrals"
+	exit 0
+}
+
+check_dependencies() {
+	echo "Reliquary dependencies:"
+	echo "  Sanctum:"
+	check_dependency hymn || true
+	check_dependency ambry || true
+	check_dependency sanctum || true
+	echo ""
+	echo "  Tools (required):"
+	check_dependency jq || true
+	check_dependency xxd || true
+	check_dependency curl || true
+	echo ""
+	echo "  Tools (optional):"
+	check_dependency cephas || true
+	check_dependency confessions || true
+	exit 0
+}
+
+if [ $# -lt 1 ]; then
+	print_help
+fi
+
+if [ "$1" = "help" ]; then
+	print_help
+fi
+
+if [ "$1" = "dependencies" ]; then
+	check_dependencies
+fi
+
+require_dependency jq
+require_dependency xxd
+require_dependency curl
+require_dependency sanctum
+require_dependency hymn
+
+get_api() {
+	cat $DIR/api
+}
+
+get_token() {
+	cat $DIR/token
+}
+
+get_natport() {
+	cat $DIR/natport
+}
+
+get_cathedral() {
+	cat $DIR/cathedral
+}
+
+get_flock_device_kek() {
+	cat $DIR/$1/device_kek
+}
+
+get_flock_cathedral_id() {
+	cat $DIR/$1/cathedral_id
+}
+
+require_flock_kek() {
+	if [ ! -f $DIR/$1/device_kek ]; then
+		echo -n "The device registration is not yet completed"
+		echo " for $1 (no kek)"
+		exit 1
+	fi
+}
+
+require_flock_kek_quiet() {
+	if [ ! -f $DIR/$1/device_kek ]; then
+		echo "Configuration for $1 is not complete"
+		exit 1
+	fi
+}
+
+kek_installed() {
+	[ -f $DIR/$1/device_kek ]
+}
+
+cathedral_id_exists() {
+	[ -f $DIR/$1/cathedral_id ]
+}
+
+require_reliquary_config() {
+	if [ ! -d $DIR ]; then
+		echo "This device does not appear to have a reliquary"
+		echo "configuration."
+		exit 1
+	fi
+}
+
+require_file() {
+	if [ ! -f $1 ]; then
+		echo $2
+		exit 1
+	fi
+}
+
+api_get() {
+	curl -s --show-error --fail -H "x-token: $(get_token)" "$(get_api)/$1"
+}
+
+api_post() {
+	curl -s --show-error --fail \
+		-H "x-token: $(get_token)" --data "$2" "$(get_api)/$1"
+}
+
+api_post_binary() {
+	curl -s --show-error --fail \
+		-H "x-token: $(get_token)" --data-binary @$2 "$(get_api)/$1"
+}
+
+get_os_sudo() {
+	host=`uname -s`
+	if [ "$host" = "OpenBSD" ]; then
+		echo "doas"
+	else
+		echo "sudo"
+	fi
+}
+
+cmd_ambry() {
+	if [ $# -lt 1 ]; then
+		echo "Usage: rlq ambry <subcommand> [args...]"
+		echo ""
+		echo "Available ambry subcommands:"
+		echo "  upload    Upload an Ambry bundle for distribution"
+		exit 1
+	fi
+
+	subcommand=$1
+	shift
+
+	case "$subcommand" in
+	upload)
+		cmd_ambry_upload $@
+		;;
+	*)
+		echo "Unknown ambry subcommand: $subcommand"
+		exit 1
+		;;
+	esac
+}
+
+cmd_ambry_upload() {
+	if [ $# -ne 2 ]; then
+		echo "Usage: rlq ambry upload flock /path/to/ambry"
+		echo ""
+		echo -n "Upload an Ambry bundle to the servers for distribution"
+		echo " to all of your devices."
+		echo ""
+		echo -n "This Ambry bundle contains KEK-wrapped shared secrets"
+		echo " for your tunnels."
+		echo "The server cannot read, nor modify these."
+		exit 1
+	fi
+
+	require_file $2 "The bundle '$2' is not a file or does not exist"
+
+	resp=$(api_post_binary ambry/$1 $2)
+
+	if [ $? -eq 0 ]; then
+		echo $resp
+	else
+		echo "something went wrong"
+	fi
+}
+
+cmd_cathedral() {
+	if [ $# -lt 1 ]; then
+		echo "Usage: rlq cathedral <subcommand> [args...]"
+		echo ""
+		echo "Available cathedral subcommands:"
+		echo "  list    List all available cathedrals"
+		exit 1
+	fi
+
+	subcommand=$1
+	shift
+
+	case "$subcommand" in
+	list)
+		cmd_cathedral_list $@
+		;;
+	*)
+		echo "Unknown cathedral subcommand: $subcommand"
+		exit 1
+		;;
+	esac
+}
+
+cmd_cathedral_list() {
+	if [ $# -ne 0 ]; then
+		echo "Usage: rlq cathedral list"
+		echo ""
+		echo "Lists all cathedrals available in this reliquary."
+		echo ""
+		echo "You can reconfigure tunnels to use whichever cathedral"
+		echo "and your tunnels will keep working."
+		exit 1
+	fi
+
+	api_get cathedrals
+}
+
+cmd_device() {
+	if [ $# -lt 1 ]; then
+		echo "Usage: rlq device <subcommand> [args...]"
+		echo ""
+		echo "Available device subcommands:"
+		echo "  approve    Approve a device in a flock"
+		echo "  delete    Remove a device from a flock"
+		echo "  list      List devices in a flock"
+		exit 1
+	fi
+
+	subcommand=$1
+	shift
+
+	case "$subcommand" in
+	approve)
+		cmd_device_approve $@
+		;;
+	delete)
+		cmd_device_delete $@
+		;;
+	list)
+		cmd_device_list $@
+		;;
+	*)
+		echo "Unknown device subcommand: $subcommand"
+		exit 1
+		;;
+	esac
+}
+
+cmd_device_approve() {
+	if [ $# -ne 2 ]; then
+		echo "Usage: rlq device approve flock device"
+		echo ""
+		echo "Approves the use of a device in a flock."
+		echo -n "When a device is approved the required kek-id is"
+		echo " returned."
+		exit 1
+	fi
+
+	resp=$(api_post device/$1/$2/approve "")
+
+	if [ $? -eq 0 ]; then
+		echo "$resp"
+	else
+		echo "something went wrong"
+	fi
+}
+
+cmd_device_delete() {
+	if [ $# -ne 2 ]; then
+		echo "Usage: rlq device delete flock device"
+		echo ""
+		echo "Remove a device from a flock."
+		exit 1
+	fi
+
+	resp=$(api_post device/$1/$2/delete "")
+
+	if [ $? -eq 0 ]; then
+		echo "$resp"
+	else
+		echo "something went wrong: $resp"
+	fi
+}
+
+cmd_device_list() {
+	if [ $# -ne 1 ]; then
+		echo "Usage: rlq device list flock"
+		echo ""
+		echo -n "Lists all devices currently registered under the"
+		echo " given flock."
+		exit 1
+	fi
+
+	resp=$(api_get device/list/$1)
+
+	if [ $? -eq 0 ]; then
+		echo $resp
+	else
+		echo "something went wrong: $resp"
+	fi
+}
+
+cmd_flock() {
+	if [ $# -lt 1 ]; then
+		echo "Usage: rlq flock <subcommand> [args...]"
+		echo ""
+		echo "Available flock subcommands:"
+		echo "  create     Create a new flock"
+		echo "  delete     Delete a flock"
+		echo "  join       Join a device into a flock"
+		echo "  list       List all available flocks"
+		echo "  liturgy    Configure a liturgy for a given flock"
+		exit 1
+	fi
+
+	subcommand=$1
+	shift
+
+	case "$subcommand" in
+	create)
+		cmd_flock_create $@
+		;;
+	delete)
+		cmd_flock_delete $@
+		;;
+	join)
+		cmd_flock_join $@
+		;;
+	list)
+		cmd_flock_list $@
+		;;
+	liturgy)
+		cmd_flock_liturgy $@
+		;;
+	*)
+		echo "Unknown flock subcommand: $subcommand"
+		exit 1
+		;;
+	esac
+}
+
+cmd_flock_create() {
+	if [ $# -ne 0 ]; then
+		echo "Usage: rlq flock create"
+		echo ""
+		echo "Creates a new flock."
+		exit 1
+	fi
+
+	resp=$(api_post flock/create "")
+
+	if [ $? -eq 0 ]; then
+		echo "$resp"
+	else
+		echo "something went wrong: $resp"
+	fi
+}
+
+cmd_flock_delete() {
+	if [ $# -ne 1 ]; then
+		echo "Usage: rlq flock delete flock"
+		echo ""
+		echo "This deletes a flock and all underlying devices."
+		exit 1
+	fi
+
+	resp=$(api_post flock/$1/delete "")
+
+	if [ $? -eq 0 ]; then
+		echo "$resp"
+	else
+		echo "something went wrong: $resp"
+	fi
+}
+
+cmd_flock_join() {
+	local outdir=""
+
+	if [ $# -eq 2 ]; then
+		DIR=$2
+	elif [ $# -ne 1 ]; then
+		echo "Usage: rlq flock join flock [outdir]"
+		echo ""
+		echo "Joins this device into the given flock."
+		echo ""
+		echo "If outdir is specified all files will be stored there"
+		echo "instead of the default location"
+		echo ""
+		echo "The device needs to be authorized by the flock"
+		echo "administrator before it can be used."
+		exit 1
+	fi
+
+	if [ -f $DIR/$1/cathedral_id ]; then
+		id=$(get_flock_cathedral_id $1)
+
+		echo "This device has already been joined into flock $1 ($id)."
+		echo ""
+
+		echo "If you want to re-join this device please remove the"
+		echo "following directory then rerun this command."
+		echo ""
+		echo "    $DIR/$1"
+		echo ""
+		echo "Note that any configured tunnels you may have will fail"
+		echo "and you must remove them using the hymn tool."
+		echo ""
+		echo -n "You may see configured tunnels using the following"
+		echo " command:"
+		echo "    $ sudo hymn list $1"
+		exit 1
+	fi
+
+	require_dependency ambry
+
+	mkdir -p $DIR/$1
+	rm -f $DIR/$1/cosk-priv $DIR/$1/cosk-pub
+	ambry cosk-pair $DIR/$1/cosk-priv $DIR/$1/cosk-pub
+
+	dev=$(api_post_binary device/$1/create $DIR/$1/cosk-pub)
+
+	if [ $? -eq 0 ]; then
+		mkdir -p $DIR/$1
+
+		flock=`echo $dev | jq -r .flock`
+		id=`echo $dev | jq -r .cathedral_id`
+		secret=`echo $dev | jq -r .cathedral_secret`
+
+		echo $id > $DIR/$1/cathedral_id
+		echo $secret | xxd -r -p - $DIR/$1/id-$id
+
+		mv $DIR/$1/cosk-priv $DIR/$1/cosk-$id
+		mv $DIR/$1/cosk-pub $DIR/$1/cosk-pub-$id
+
+		echo "This device has been joined into $1 and is pending"
+		echo "approval by the flock administrator."
+		echo ""
+		echo "    Device: $id"
+		echo ""
+		echo "Once approved, the flock administrator will send you"
+		echo "the device its KEK, please place this under the following"
+		echo "path:"
+		echo ""
+		echo "    $DIR/$1"
+		echo ""
+	else
+		echo "something went wrong: $dev"
+	fi
+}
+
+cmd_flock_list() {
+	if [ $# -ne 0 ]; then
+		echo "Usage: rlq flock list"
+		echo ""
+		echo "Lists all the flocks that are available for you to use."
+		exit 1
+	fi
+
+	list=$(api_get flock/list)
+
+	if [ $? -eq 0 ]; then
+		echo $list
+	else
+		echo "something went wrong: $list"
+	fi
+}
+
+cmd_flock_liturgy() {
+	if [ $# -ne 3 ]; then
+		echo "Usage: rlq flock liturgy flock prefix group"
+		echo ""
+		echo "Configures a liturgy instance for the given flock."
+		echo "Please note that you should not configure any tunnels"
+		echo "manually when using a liturgy as a liturgy instance will"
+		echo "automatically"
+		echo "manage tunnels to other devices in the flock."
+		echo ""
+		echo "The group is a 16-bit liturgy group, free of choice."
+		echo ""
+		echo -n "The prefix is the network prefix used to set ips for"
+		echo "peers."
+		exit 1
+	fi
+
+	require_flock_kek $1
+
+	natport=$(get_natport)
+	src=$(get_flock_device_kek $1)
+	id=$(get_flock_cathedral_id $1)
+	cathedral=$(get_cathedral)
+
+	user=`whoami`
+	SUDO=$(get_os_sudo)
+
+	$SUDO hymn liturgy $1-$src cathedral $cathedral \
+	    identity $id:$DIR/$1/id-$id kek $DIR/$1/kek-0x$src \
+	    prefix $2 natport $natport group $3 \
+	    cosk $DIR/$1/cosk-$id user $user shroud yes
+
+	echo "A liturgy for $1 has been created."
+	echo ""
+	echo "You can then bring it up using hymn:"
+	echo "    $ sudo hymn up $1-$src-00"
+	echo "    $ sudo hymn down $1-$src-00"
+	echo "    $ sudo hymn status $1-$src-00"
+	echo "    $ sudo hymn del $1-$src-00"
+}
+
+cmd_init() {
+	if [ $# -ne 1 ]; then
+		echo "Usage: rlq init [api]"
+		echo ""
+		echo "Initialises the reliquary repository using the given api."
+		exit 1
+	fi
+
+	resp=$(curl -s --show-error --fail --data "" $1/init)
+
+	if [ $? -eq 0 ]; then
+		natport=`echo $resp | jq -r .natport`
+		cathedral=`echo $resp | jq -r .cathedral`
+
+		mkdir -p $DIR
+		touch $DIR/token
+		echo $1 > $DIR/api
+		echo $natport > $DIR/natport
+		echo $cathedral > $DIR/cathedral
+
+		echo "reliquary initialised"
+	else
+		echo "something went wrong: $token"
+	fi
+}
+
+cmd_kek() {
+	if [ $# -lt 1 ]; then
+		echo "Usage: rlq kek <subcommand> [args...]"
+		echo ""
+		echo "Available kek subcommands:"
+		echo "  install    Install a KEK from a local file"
+		echo "  recv       Receive a KEK from a remote distributor"
+		echo "  send       Submit a KEK to a peer"
+		exit 1
+	fi
+
+	subcommand=$1
+	shift
+
+	case "$subcommand" in
+	install)
+		cmd_kek_install $@
+		;;
+	recv)
+		cmd_kek_recv $@
+		;;
+	send)
+		cmd_kek_send $@
+		;;
+	*)
+		echo "Unknown kek subcommand: $subcommand"
+		exit 1
+		;;
+	esac
+}
+
+cmd_kek_install() {
+	if [ $# -ne 3 ] ; then
+		echo "Usage: rlq kek install flock kek-id /path/to/kek"
+		echo ""
+		echo -n "Install the KEK given by the path into the specified"
+		echo " flock."
+		exit 1
+	fi
+
+	if [ -f $DIR/$1/device_kek ]; then
+		echo "A KEK already seems to be installed for $1"
+		exit 1
+	fi
+
+	cp $3 $DIR/$1/kek-0x$2
+	echo $2 > $DIR/$1/device_kek
+
+	echo "The KEK is now installed as kek-0x$2 in $1."
+}
+
+cmd_kek_recv() {
+	if [ $# -ne 4 ] ; then
+		echo -n "Usage: rlq kek recv flock "
+		echo "peer-kek-id peer-cs-id local-kek-id"
+		echo ""
+		echo "Use cephas to receive the KEK to your flock administrator"
+		echo "over a sanctum tunnel."
+		echo ""
+		echo "Your flock administrator should've given you the"
+		echo "peer-kek-id, peer-cs-id and local-kek-id parameters."
+		exit 1
+	fi
+
+	require_dependency cephas
+
+	if [ -f $DIR/$1/device_kek ]; then
+		echo "Configuration for $1 ready completed"
+		exit 1
+	fi
+
+	id=$(get_flock_cathedral_id $1)
+	cathedral=$(get_cathedral)
+
+	cephas -l $id -r $3 -f $1 -t $4$2 \
+	    -o $DIR/$1/cosk-$id -s $DIR/$1/id-$id \
+	    $cathedral recv $DIR/$1/kek-0x$4
+
+	echo $4 > $DIR/$1/device_kek
+}
+
+cmd_kek_send() {
+	if [ $# -ne 4 ] ; then
+		echo "Usage: rlq kek send flock kek-id peer-cs-id /path/to/kek"
+		echo ""
+		echo -n "Use cephas to send the KEK to a peer over a sanctum"
+		echo " tunnel."
+		echo ""
+		echo "The kek-id is the assigned kek-id to the client device."
+		echo "The peer-cs-id is the assigned cathedral id for the"
+		echo "client"
+		echo ""
+		echo "There is an obvious chicken and egg problem here, you"
+		echo "need to supply a client with a KEK, but physical"
+		echo "distribution is not"
+		echo "always easy. Even if its the safest."
+		echo ""
+		echo "Cephas allows you to use a normal sanctum tunnel to send"
+		echo "the KEK."
+		echo "This tunnel uses a shared secret derived from a strong"
+		echo "passphrase"
+		echo "in combination with the normal ECDH+ML-KEM exchange."
+		echo ""
+		echo "Use physical distribution when possible."
+		exit 1
+	fi
+
+	require_dependency cephas
+
+	require_flock_kek_quiet $1
+
+	require_file $4 "The kek $4 does not exists"
+
+	kek=$(get_flock_device_kek $1)
+	id=$(get_flock_cathedral_id $1)
+	cathedral=$(get_cathedral)
+
+	cephas -l $id -r $3 -f $1 -t $kek$2 \
+	    -o $DIR/$1/cosk-$id -s $DIR/$1/id-$id $cathedral send $4
+}
+
+cmd_login() {
+	if [ $# -ne 2 ]; then
+		echo "Usage: rlq login [api] [account-key]"
+		echo ""
+		echo "Login to the reliquary specified by the given api and"
+		echo "your account key."
+		echo ""
+		echo "When doing a login for the first time this script will"
+		echo "setup the required directories under $HOME/.config/"
+		echo "reliquary."
+		echo ""
+		exit 1
+	fi
+
+	resp=$(curl -s --show-error --fail --data "$2" $1/init)
+
+	if [ $? -eq 0 ]; then
+		token=`echo $resp | jq -r .token`
+		natport=`echo $resp | jq -r .natport`
+		cathedral=`echo $resp | jq -r .cathedral`
+
+		mkdir -p $DIR
+		echo $1 > $DIR/api
+		echo $token > $DIR/token
+		echo $natport > $DIR/natport
+		echo $cathedral > $DIR/cathedral
+
+		echo "reliquary initialised"
+	else
+		echo "something went wrong: $token"
+	fi
+}
+
+cmd_register() {
+	if [ $# -ne 1 ]; then
+		echo "Usage: rlq register [api]"
+		echo ""
+		echo "Initialise the reliquary repository locally by obtaining"
+		echo "a new account-key. This account-key is valid for 24 hours"
+		echo "and will automatically deactivate unless you extend its"
+		echo "lifetime."
+		echo ""
+		echo "Extending its lifetime can be done via your account"
+		echo "page on which you login with your account-key."
+		echo ""
+		echo "The account page is found"
+		echo "at https://[hostname]/account/login,"
+		echo "where hostname is the hostname for the API you"
+		echo "configured."
+		echo ""
+		echo "After registering an account-key, you can use the other"
+		echo "reliquary commands-line tools."
+		echo ""
+		echo "Note that if you already have an account, you should be"
+		echo "using the rlq init tool instead on this device."
+		exit 1
+	fi
+
+	if [ -d $DIR ]; then
+		echo "Reliquary already appears to be initialised"
+		exit 1
+	fi
+
+	resp=$(curl -s --show-error --fail --data "$2" $1/register)
+
+	if [ $? -eq 0 ]; then
+		token=`echo $resp | jq -r .token`
+		account=`echo $resp | jq -r .account`
+		natport=`echo $resp | jq -r .natport`
+		cathedral=`echo $resp | jq -r .cathedral`
+
+		mkdir -p $DIR
+		echo $1 > $DIR/api
+		echo $token > $DIR/token
+		echo $natport > $DIR/natport
+		echo $cathedral > $DIR/cathedral
+
+		echo "Your new account-key is:"
+		echo "    $account"
+		echo ""
+		echo "This account-key is valid for 24 hours and will"
+		echo "automatically deactivate unless you extend its lifetime."
+		echo ""
+		echo "Extending its lifetime can be done via your account"
+		echo "page on which you login with your account-key."
+		echo ""
+		echo "The account page is found"
+		echo "at https://[hostname]/account/login,"
+		echo "where hostname is the hostname for the API you"
+		echo "configured."
+		echo ""
+		echo "Please store this key somewhere safe as we do not save it"
+		echo "locally on your disk and you will lose access to your"
+		echo "account without it."
+		echo ""
+		echo "This key is used to manage your entire account, keep it"
+		echo "secret."
+		echo ""
+		echo "By using reliquary you as the user accept that reliquary"
+		echo "may not be used for illegal activities or to distribute"
+		echo "illegal content and that you and you alone are"
+		echo "responsible for the data you are"
+		echo "transmitting."
+	else
+		echo "something went wrong: $token"
+	fi
+}
+
+cmd_status() {
+	if [ $# -ne 0 ]; then
+		echo "Usage: rlq status"
+		echo ""
+		echo "Displays this device its current reliquary status."
+		exit 1
+	fi
+
+	require_reliquary_config
+
+	echo "Reliquary is initiated."
+
+	flocks=`find $DIR ! -path $DIR  -type d`
+
+	for flock in $flocks; do
+		name=`basename $flock`
+
+		if [ ! -f "$DIR/$name/cathedral_id" ]; then
+			continue
+		fi
+
+		cathedral_id=$(get_flock_cathedral_id $name)
+
+		echo "    flock $name"
+
+		if [ ! -f $DIR/$name/device_kek ]; then
+				echo "        kek          awaiting kek from"
+				echo "            flock owner"
+		else
+			kek=$(get_flock_device_kek $name)
+			echo "        kek          $kek (ready)"
+		fi
+
+		echo "        device-id    $cathedral_id"
+	done
+}
+
+cmd_tunnel() {
+	if [ $# -lt 1 ]; then
+		echo "Usage: rlq tunnel <subcommand> [args...]"
+		echo ""
+		echo "Available tunnel subcommands:"
+		echo "  add          Setup a tunnel between two devices"
+		echo -n "  xadd      Setup a cross-flock tunnel between"
+		echo " two devices"
+		exit 1
+	fi
+
+	subcommand=$1
+	shift
+
+	case "$subcommand" in
+	add)
+		cmd_tunnel_config $@
+		;;
+	xadd)
+		cmd_tunnel_xflock $@
+		;;
+	*)
+		echo "Unknown tunnel subcommand: $subcommand"
+		exit 1
+		;;
+	esac
+}
+
+cmd_tunnel_config() {
+	if [ $# -ne 4 ] ; then
+		echo -n "Usage: rlq tunnel add flock peer-kek-id"
+		echo " ip/mask name"
+		echo ""
+		echo "Configures a tunnel between your device and"
+		echo "the device specified by the peer-kek-id. It will"
+		echo "route the provided network over the tunnel."
+		echo ""
+		echo "After doing this, a tunnel can be brought up using hymn:"
+		echo "    $ sudo hymn up <name>"
+		exit 1
+	fi
+
+	require_flock_kek $1
+
+	natport=$(get_natport)
+	src=$(get_flock_device_kek $1)
+	cathedral=$(get_cathedral)
+	cathedral_id=$(get_flock_cathedral_id $1)
+
+	user=`whoami`
+	SUDO=$(get_os_sudo)
+
+	$SUDO hymn add $1-$src-$2 tunnel $3 cathedral $cathedral \
+	    kek $DIR/$1/kek-0x$src \
+	    identity $cathedral_id:$DIR/$1/id-$cathedral_id \
+	    cosk $DIR/$1/cosk-$cathedral_id natport $natport \
+	    user $user name $4 shroud yes
+
+	$SUDO hymn remembrance $4 on
+
+	echo "Tunnel $4 ($1-$src-$2) has been configured."
+	echo "Please use hymn from now on to bring it up, down or to delete it."
+	echo ""
+	echo "    $ sudo hymn up $4"
+	echo "    $ sudo hymn down $4"
+	echo "    $ sudo hymn status $4"
+	echo "    $ sudo hymn del $4"
+}
+
+cmd_tunnel_xflock() {
+	if [ $# -ne 5 ] ; then
+		echo -n "Usage: rlq tunnel xadd flock_src flock_dst "
+		echo "peer-kek-id ip/mask name"
+		echo ""
+		echo "Configures a tunnel between your device and the device"
+		echo "specified by the destination flock and the peer-kek-id."
+		echo "It will route the provided network over the tunnel."
+		echo ""
+		echo "After doing this, a tunnel can be brought up using hymn:"
+		echo "    $ sudo hymn up <name>"
+		exit 1
+	fi
+
+	require_flock_kek $1
+
+	natport=$(get_natport)
+	src=$(get_flock_device_kek $1)
+	cathedral=$(get_cathedral)
+	cathedral_id=$(get_flock_cathedral_id $1)
+
+	user=`whoami`
+	SUDO=$(get_os_sudo)
+
+	$SUDO hymn add $1:$2-$src-$3 tunnel $4 cathedral $cathedral \
+	    kek $DIR/$1/kek-0x$src \
+	    identity $cathedral_id:$DIR/$1/id-$cathedral_id \
+	    cosk $DIR/$1/cosk-$cathedral_id natport $natport \
+	    user $user name $5 shroud yes
+
+	$SUDO hymn remembrance $5 on
+
+	echo "Tunnel $5 ($1:$2-$src-$3) has been configured."
+	echo "Please use hymn from now on to bring it up, down or to delete it."
+	echo ""
+	echo "    $ sudo hymn up $5"
+	echo "    $ sudo hymn down $5"
+	echo "    $ sudo hymn status $5"
+	echo "    $ sudo hymn del $5"
+}
+
+cmd_voice() {
+	if [ $# -lt 1 ]; then
+		echo "Usage: rlq voice <subcommand> [args...]"
+		echo ""
+		echo "Available voice subcommands:"
+		echo "  call      Make a voice call to another peer"
+		echo "  liturgy   Use voice in liturgy mode"
+		exit 1
+	fi
+
+	subcommand=$1
+	shift
+
+	case "$subcommand" in
+	call)
+		cmd_voice_call $@
+		;;
+	liturgy)
+		cmd_voice_liturgy $@
+		;;
+	*)
+		echo "Unknown voice subcommand: $subcommand"
+		exit 1
+		;;
+	esac
+}
+
+cmd_voice_call() {
+	set -x
+
+	if [ $# -ne 2 ]; then
+		echo "Usage: rlq voice call [flock] [target]"
+		echo "Use confessions to make an voice call to another peer."
+		exit 1
+	fi
+
+	require_dependency confessions
+
+	require_flock_kek $1
+
+	flock=$1
+	cathedral=$(get_cathedral)
+	src=$(get_flock_device_kek $flock)
+	cathedral_id=$(get_flock_cathedral_id $flock)
+
+	if [ ! -z "$CATHEDRAL" ]; then
+		cathedral=$CATHEDRAL
+	fi
+
+	echo "flock:$flock - src:$src - id:$cathedral_id ($cathedral)"
+	echo "starting confessions ... "
+
+	confessions cathedral -s $DIR/$flock/id-$cathedral_id \
+	    -k $DIR/$flock/kek-0x$src -f $1 -i $cathedral_id -t 0x$src$2 \
+	    -o $DIR/$flock/cosk-$cathedral_id $cathedral
+}
+
+cmd_voice_liturgy() {
+	if [ $# -ne 2 ]; then
+		echo "Usage: rlq voice liturgy [flock] [group]"
+		echo "Use confessions in liturgy mode."
+		echo "In liturgy mode you automatically establish voice tunnels"
+		echo "to everyone who comes also uses liturgy mode in your"
+		echo "flock"
+		echo "creating one large group call."
+		exit 1
+	fi
+
+	require_dependency confessions
+
+	require_flock_kek $1
+
+	flock=$1
+	cathedral=$(get_cathedral)
+	src=$(get_flock_device_kek $flock)
+	cathedral_id=$(get_flock_cathedral_id $flock)
+
+	echo "flock:$flock - src:$src - id:$cathedral_id"
+	echo "starting confessions ... "
+
+	confessions liturgy -s $DIR/$flock/id-$cathedral_id \
+	    -k $DIR/$flock/kek-0x$src -f $1 -i $cathedral_id -t 0x$src \
+	    -o $DIR/$flock/cosk-$cathedral_id -g $2 $cathedral
+}
+
+cmd_xflock() {
+	if [ $# -lt 1 ]; then
+		echo "Usage: rlq xflock <subcommand> [args...]"
+		echo ""
+		echo "Available xflock subcommands:"
+		echo "  ambry      Upload cross-flock Ambry bundle"
+		echo "  create    Create cross-flock configuration"
+		echo "  delete    Delete cross-flock configuration"
+		echo "  list      List all cross-flocks"
+		echo "  tunnel    Configure cross-flock tunnel"
+		exit 1
+	fi
+
+	subcommand=$1
+	shift
+
+	case "$subcommand" in
+	ambry)
+		cmd_xflock_ambry $@
+		;;
+	create)
+		cmd_xflock_create $@
+		;;
+	delete)
+		cmd_xflock_delete $@
+		;;
+	list)
+		cmd_xflock_list $@
+		;;
+	*)
+		echo "Unknown xflock subcommand: $subcommand"
+		exit 1
+		;;
+	esac
+}
+
+cmd_xflock_ambry() {
+	if [ $# -ne 3 ]; then
+		echo "Usage: rlq xflock ambry flock_a flock_b /path/to/ambry"
+		echo ""
+		echo -n "This is the cross-flock variant of"
+		echo " rlq ambry upload."
+		echo ""
+		echo "Upload an Ambry bundle to the servers for distribution"
+		echo "to all of your devices."
+		echo ""
+		echo "This Ambry bundle contains KEK-wrapped shared secrets"
+		echo "for your tunnels. The cathedrals cannot read, nor"
+		echo "modify these."
+		exit 1
+	fi
+
+	require_file $3 "The bundle '$3' is not a file or does not exist"
+
+	resp=$(api_post_binary xflock/$1/$2/ambry $3)
+
+	if [ $? -eq 0 ]; then
+		echo $resp
+	else
+		echo "something went wrong"
+	fi
+}
+
+cmd_xflock_create() {
+	if [ $# -ne 2 ]; then
+		echo "Usage: rlq xflock create [flock_a] [flock_b]"
+		echo ""
+		echo "Creates a new cross-flock configuration."
+		exit 1
+	fi
+
+	resp=$(api_post xflock/$1/$2/create "")
+
+	if [ $? -eq 0 ]; then
+		echo "$resp"
+	else
+		echo "something went wrong: $resp"
+	fi
+}
+
+cmd_xflock_delete() {
+	if [ $# -ne 2 ]; then
+		echo "Usage: rlq xflock delete [flock_a] [flock_b]"
+		echo ""
+		echo "Deletes an exiseting cross-flock configuration."
+		exit 1
+	fi
+
+	resp=$(api_post xflock/$1/$2/delete "")
+
+	if [ $? -eq 0 ]; then
+		echo "$resp"
+	else
+		echo "something went wrong: $resp"
+	fi
+}
+
+cmd_xflock_list() {
+	if [ $# -ne 0 ]; then
+		echo "Usage: rlq xflock list"
+		echo ""
+		echo "Lists all of your cross-flocks."
+		exit 1
+	fi
+
+	list=$(api_get xflock/list)
+
+	if [ $? -eq 0 ]; then
+		echo $list
+	else
+		echo "something went wrong: $list"
+	fi
+}
+
+COMMAND=$1
+shift
+
+case "$COMMAND" in
+dependencies)
+	check_dependencies
+	;;
+ambry)
+	cmd_ambry $@
+	;;
+cathedral)
+	cmd_cathedral $@
+	;;
+device)
+	cmd_device $@
+	;;
+flock)
+	cmd_flock $@
+	;;
+help)
+	print_help
+	;;
+init)
+	cmd_init $@
+	;;
+kek)
+	cmd_kek $@
+	;;
+login)
+	cmd_login $@
+	;;
+register)
+	cmd_register $@
+	;;
+status)
+	cmd_status $@
+	;;
+tunnel)
+	cmd_tunnel $@
+	;;
+voice)
+	cmd_voice $@
+	;;
+xflock)
+	cmd_xflock $@
+	;;
+*)
+	echo "Unknown command: $COMMAND"
+	exit 1
+	;;
+esac
