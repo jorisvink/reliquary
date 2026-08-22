@@ -886,8 +886,8 @@ cmd_status() {
 		echo "    flock $name"
 
 		if [ ! -f $DIR/$name/device_kek ]; then
-				echo "        kek          awaiting kek from"
-				echo "            flock owner"
+				echo -n "        kek          awaiting kek from"
+				echo " flock owner"
 		else
 			kek=$(get_flock_device_kek $name)
 			echo "        kek          $kek (ready)"
