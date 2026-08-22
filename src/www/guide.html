@@ -14,7 +14,7 @@
         <h3>Reliquary</h3>
         <a href="/">About</a>
         <br>
-        <a href="https://reliquary.se/reliquary-cli.tar">Download Tools</a>
+        <a href="https://reliquary.se/rlq">Download</a>
         <br>
         <a href="/terms.html">Terms And Conditions</a>
         <br>
@@ -78,8 +78,7 @@
         <br>
 
         The Reliquary
-        <a href="https://reliquary.se/reliquary-cli.tar">tools</a> and its
-        dependencies.
+        <a href="https://reliquary.se/rlq">script</a> and its dependencies.
         <ul style="margin-left: 30px">
         <li>jq</li>
         <li>xxd</li>
@@ -98,14 +97,14 @@
     </p>
 
     <small>
-        Fetch The Reliquary cli-tools and make sure they
-        live in your <span class="cmd">PATH</span> somewhere:
+        Fetch The Reliquary script and make sure it
+        lives in your <span class="cmd">PATH</span> somewhere:
     </small>
 <pre>
 $ mkdir ~/reliquary
 $ cd ~/reliquary
-$ curl -O https://reliquary.se/reliquary-cli.tar
-$ tar fvx reliquary-cli.tar
+$ curl -O https://reliquary.se/rlq
+$ chmod +x rlq
 $ export PATH=~/reliquary:$PATH
 </pre>
 
@@ -135,46 +134,15 @@ $ sudo make install
 
     <div class="sep2"></div>
 
-    <h2 id="cli-tools">The tools</h2>
+    <h2 id="cli-tools">The rlq script</h2>
 
     <p>
-        The Reliquary cli-tools are shell scripts based around
-        <span class="cmd">curl</span> to perform the API requests and
-        <span class="cmd">jq</span> to parse the responses. Below is a list
-        of the most relevant ones and what they do.
-        </p>
-        <ul>
-        <li><span class="cmd">reliquary-status</span> -
-        Display reliquary status on the machine.</li>
-        <li><span class="cmd">reliquary-init</span> -
-        Initialise reliquary without login.</li>
-        <li><span class="cmd">reliquary-register</span> -
-        Registers a new account.</li>
-        <li><span class="cmd">reliquary-login</span> -
-        Login to an existing account.</li>
-        <li><span class="cmd">reliquary-flock-create</span> -
-        Create a new flock tied to your account.</li>
-        <li><span class="cmd">reliquary-flock-list</span> -
-        List your current flocks on your account.</li>
-        <li><span class="cmd">reliquary-flock-join</span> -
-        Join a device into one of your flocks.</li>
-        <li><span class="cmd">reliquary-device-list</span> -
-        List all devices in one of your flocks.</li>
-        <li><span class="cmd">reliquary-device-approve</span> -
-        Approve a device that has joined one of your flocks.</li>
-        <li><span class="cmd">reliquary-device-delete</span> -
-        Removes a device from your flock.</li>
-        <li><span class="cmd">reliquary-kek-install</span> -
-        Install a KEK for a flock.</li>
-        <li><span class="cmd">reliquary-ambry-upload</span> -
-        Upload a new ambry bundle for a flock.</li>
-        <li><span class="cmd">reliquary-cathedral-list</span> -
-        Lists all cathedrals in The Reliquary.</li>
-        <li><span class="cmd">reliquary-tunnel-configure</span> -
-        Configures a tunnel to another peer in the same flock.</li>
-        </ul>
+        The Reliquary <span class="cmd">rlq</span> script provides you
+        with commands and subcommands to help you manage your flocks
+        and devices with ease. It is a simple shell script that can
+        be inspected.
 
-        The cli-tools store files under
+        The Reliquary stores files under
         <small>$HOME/.config/reliquary</small>
         by default. This path may be overwritten by setting
         <small>RELIQUARY</small> in your environment before
@@ -195,7 +163,7 @@ $ sudo make install
     </small>
 
 <pre>
-$ reliquary-register https://vessel.reliquary.se/v1
+$ rlq register https://vessel.reliquary.se/v1
 </pre>
 
     <p>
@@ -219,7 +187,7 @@ $ reliquary-register https://vessel.reliquary.se/v1
     </small>
 
 <pre>
-$ reliquary-login https://vessel.reliquary.se/v1 &lt;accountkey&gt;
+$ rlq login https://vessel.reliquary.se/v1 &lt;accountkey&gt;
 </pre>
 
     <div class="sep2"></div>
@@ -271,7 +239,7 @@ $ reliquary-login https://vessel.reliquary.se/v1 &lt;accountkey&gt;
         Creating your first flock is done as follows:
     </small>
 <pre>
-$ reliquary-flock-create
+$ rlq flock create
 flock 350d5c8b33dfb700 created
 $
 </pre>
@@ -310,7 +278,7 @@ $
         Uploading our new ambry bundle to The Reliquary:
     </small>
 <pre>
-$ reliquary-ambry-upload 350d5c8b33dfb700 ambry.bundle
+$ rlq ambry upload 350d5c8b33dfb700 ambry.bundle
 ambry uploaded
 $
 </pre>
@@ -336,8 +304,8 @@ $
     </p>
 
     <p>
-        You use
-        <a href="https://reliquary.se/reliquary-cli.tar">cli-tools</a> to
+        You use the
+        <a href="https://reliquary.se/rlq">rlq</a> shell script to
         initialise The Reliquary on your client devices after which you
         join them into your newly created flock.
     </p>
@@ -346,7 +314,7 @@ $
         Initialising The Reliquary on a new client:
     </small>
 <pre>
-$ reliquary-init https://vessel.reliquary.se/v1
+$ rlq init https://vessel.reliquary.se/v1
 reliquary initialised
 $
 </pre>
@@ -355,7 +323,7 @@ $
         Joining the new client into the flock:
     </small>
 <pre>
-$ reliquary-flock-join 350d5c8b33dfb7db
+$ rlq flock join 350d5c8b33dfb7db
 This device has been joined into 350d5c8b33dfb7db and is pending approval by
 the flock administrator.
 
@@ -377,7 +345,7 @@ its KEK, please place this under the following path:
         <span class="cmd">admin</span> machine:
     </small>
 <pre>
-$ reliquary-device-approve 350d5c8b33dfb7db 577165a1
+$ rlq device approve 350d5c8b33dfb7db 577165a1
 device approved, please supply it with 350d5c8b33dfb700/kek-data/kek-0x01
 $
 </pre>
@@ -394,14 +362,14 @@ $
 
     <p>
         The KEK must now be installed on your client device.
-        You do this using <span class="cmd">reliquary-kek-install</span>.
+        You do this using <span class="cmd">rlq kek install</span>.
     </p>
 
     <small>
         Installing the device-1 its KEK (kek 01):
     </small>
 <pre>
-$ reliquary-kek-install 350d5c8b33dfb700 01 /path/to/kek-0x01
+$ rlq kek install 350d5c8b33dfb700 01 /path/to/kek-0x01
 The KEK is now installed as kek-0x01 in 350d5c8b33dfb700.
 $
 </pre>
@@ -421,8 +389,8 @@ $
     <h2 id="device-2-register">Joining device-2</h2>
 
     <p>
-        Run <span class="cmd">reliquary-init</span> and
-        <span class="cmd">reliquary-flock-join</span> on your second device,
+        Run <span class="cmd">rlq init</span> and
+        <span class="cmd">rlq flock join</span> on your second device,
         approve it in the same way as you did for device-1 and finally
         distribute and install the requested KEK to said device.
     </p>
@@ -435,8 +403,8 @@ $
         Configuring the tunnel to device-2 on device-1:
     </small>
 <pre>
-$ reliquary-tunnel-config 350d5c8b33dfb7db 02 172.16.99.1/29
-Tunnel 350d5c8b33dfb7db-01-02 has been configured.
+$ rlq tunnel add 350d5c8b33dfb7db 02 172.16.99.1/29
+Tunnel 350d5c8b33dfb7db-01-02 has been added.
 Please use hymn from now on to bring it up, down or to delete it.
 
     $ sudo hymn up 350d5c8b33dfb7db-01-02
@@ -453,8 +421,8 @@ $
         Configuring the tunnel to device-1 on device-2:
     </small>
 <pre>
-$ reliquary-tunnel-config 350d5c8b33dfb7db 01 172.16.99.2/29
-Tunnel 350d5c8b33dfb7db-02-01 has been configured.
+$ rlq tunnel add 350d5c8b33dfb7db 01 172.16.99.2/29
+Tunnel 350d5c8b33dfb7db-02-01 has been added.
 Please use hymn from now on to bring it up, down or to delete it.
 
     $ sudo hymn up 350d5c8b33dfb7db-02-01
@@ -470,7 +438,7 @@ $
     <p>
         Finally, if you did everything right we can bring up the tunnel using
         the <strong>hymn</strong> tool. Using the commands that
-        <span class="cmd">reliquary-tunnel-config</span> showed for
+        <span class="cmd">rlq tunnel add</span> showed for
         both device-1 and device-2 we bring up the tunnel.
     </p>
 
@@ -550,7 +518,7 @@ commands:
         Swapping a tunnel to a different cathedral:
     </small>
 <pre>
-$ reliquary-cathedral-list
+$ rlq cathedral list
 de-1 157.90.25.232:4500
 fi-1 37.27.200.90:4500
 $ sudo hymn cathedral 350d5c8b33dfb7db-02-01 37.27.200.90:4500

@@ -55,6 +55,3 @@ ubuntu-24.04:
 podman-clean:
 	podman rm -a
 	podman rmi -a
-
-cli-release: cli
-	cd $(OUTPUT)/cli-files && tar cvf ../reliquary-cli.tar .

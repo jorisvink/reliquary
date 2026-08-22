@@ -959,7 +959,7 @@ cmd_tunnel_config() {
 
 	$SUDO hymn remembrance $4 on
 
-	echo "Tunnel $4 ($1-$src-$2) has been configured."
+	echo "Tunnel $4 ($1-$src-$2) has been added."
 	echo "Please use hymn from now on to bring it up, down or to delete it."
 	echo ""
 	echo "    $ sudo hymn up $4"
@@ -1000,7 +1000,7 @@ cmd_tunnel_xflock() {
 
 	$SUDO hymn remembrance $5 on
 
-	echo "Tunnel $5 ($1:$2-$src-$3) has been configured."
+	echo "Tunnel $5 ($1:$2-$src-$3) has been added."
 	echo "Please use hymn from now on to bring it up, down or to delete it."
 	echo ""
 	echo "    $ sudo hymn up $5"
@@ -1039,8 +1039,6 @@ cmd_voice() {
 }
 
 cmd_voice_call() {
-	set -x
-
 	if [ $# -ne 2 ]; then
 		echo "Usage: rlq voice call [flock] [target]"
 		echo "Use confessions to make an voice call to another peer."
