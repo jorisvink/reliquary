@@ -1101,7 +1101,7 @@ cmd_xflock() {
 		echo "Usage: rlq xflock <subcommand> [args...]"
 		echo ""
 		echo "Available xflock subcommands:"
-		echo "  ambry      Upload cross-flock Ambry bundle"
+		echo "  ambry     Upload cross-flock Ambry bundle"
 		echo "  create    Create cross-flock configuration"
 		echo "  delete    Delete cross-flock configuration"
 		echo "  list      List all cross-flocks"
