@@ -698,7 +698,7 @@ cmd_kek_recv() {
 	require_dependency cephas
 
 	if [ -f $DIR/$1/device_kek ]; then
-		echo "Configuration for $1 ready completed"
+		echo "Configuration for $1 already completed"
 		exit 1
 	fi
 
