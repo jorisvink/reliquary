@@ -247,7 +247,7 @@ cmd_ambry() {
 
 cmd_ambry_upload() {
 	if [ $# -ne 2 ]; then
-		echo "Usage: rlq ambry upload flock /path/to/ambry"
+		echo "Usage: rlq ambry upload [flock] [/path/to/ambry]"
 		echo ""
 		echo -n "Upload an Ambry bundle to cathedrals for distribution"
 		echo " to your devices."
@@ -343,7 +343,7 @@ cmd_device() {
 
 cmd_device_approve() {
 	if [ $# -ne 2 ]; then
-		echo "Usage: rlq device approve flock device"
+		echo "Usage: rlq device approve [flock] [device]"
 		echo ""
 		echo "Approves the use of a device in a flock."
 		echo -n "When a device is approved the required kek-id is"
@@ -362,7 +362,7 @@ cmd_device_approve() {
 
 cmd_device_delete() {
 	if [ $# -ne 2 ]; then
-		echo "Usage: rlq device delete flock device"
+		echo "Usage: rlq device delete [flock] [device]"
 		echo ""
 		echo "Remove a device from a flock."
 		exit 1
@@ -379,7 +379,7 @@ cmd_device_delete() {
 
 cmd_device_list() {
 	if [ $# -ne 1 ]; then
-		echo "Usage: rlq device list flock"
+		echo "Usage: rlq device list [flock]"
 		echo ""
 		echo -n "Lists all devices currently registered under the"
 		echo " given flock."
@@ -455,7 +455,7 @@ cmd_flock_create() {
 
 cmd_flock_delete() {
 	if [ $# -ne 1 ]; then
-		echo "Usage: rlq flock delete flock"
+		echo "Usage: rlq flock delete [flock]"
 		echo ""
 		echo "This deletes a flock and all underlying devices."
 		exit 1
@@ -476,7 +476,7 @@ cmd_flock_join() {
 	if [ $# -eq 2 ]; then
 		DIR=$2
 	elif [ $# -ne 1 ]; then
-		echo "Usage: rlq flock join flock [outdir]"
+		echo "Usage: rlq flock join [flock] [outdir]"
 		echo ""
 		echo "Joins this device into the given flock."
 		echo ""
@@ -564,7 +564,7 @@ cmd_flock_list() {
 
 cmd_flock_liturgy() {
 	if [ $# -ne 3 ]; then
-		echo "Usage: rlq flock liturgy flock prefix group"
+		echo "Usage: rlq flock liturgy [flock] [prefix] [group]"
 		echo ""
 		echo "Configures a liturgy instance for the given flock."
 		echo "Please note that you should not configure any tunnels"
@@ -664,7 +664,7 @@ cmd_kek() {
 
 cmd_kek_install() {
 	if [ $# -ne 3 ] ; then
-		echo "Usage: rlq kek install flock kek-id /path/to/kek"
+		echo "Usage: rlq kek install [flock] [kek-id] [/path/to/kek]"
 		echo ""
 		echo -n "Install the KEK given by the path into the specified"
 		echo " flock."
@@ -684,8 +684,8 @@ cmd_kek_install() {
 
 cmd_kek_recv() {
 	if [ $# -ne 4 ] ; then
-		echo -n "Usage: rlq kek recv flock "
-		echo "peer-kek-id peer-cs-id local-kek-id"
+		echo -n "Usage: rlq kek recv [flock] "
+		echo "[peer-kek-id] [peer-cs-id] [local-kek-id]"
 		echo ""
 		echo "Use cephas to receive the KEK to your flock administrator"
 		echo "over a sanctum tunnel."
@@ -714,7 +714,8 @@ cmd_kek_recv() {
 
 cmd_kek_send() {
 	if [ $# -ne 4 ] ; then
-		echo "Usage: rlq kek send flock kek-id peer-cs-id /path/to/kek"
+		echo -n "Usage: rlq kek send [flock] [kek-id] "
+		echo "[peer-cs-id] [/path/to/kek]"
 		echo ""
 		echo -n "Use cephas to send the KEK to a peer over a sanctum"
 		echo " tunnel."
@@ -929,8 +930,8 @@ cmd_tunnel() {
 
 cmd_tunnel_config() {
 	if [ $# -ne 4 ] ; then
-		echo -n "Usage: rlq tunnel add flock peer-kek-id"
-		echo " ip/mask name"
+		echo -n "Usage: rlq tunnel add [flock] [peer-kek-id]"
+		echo " [ip/mask] [name]"
 		echo ""
 		echo "Configures a tunnel between your device and"
 		echo "the device specified by the peer-kek-id. It will"
@@ -970,8 +971,8 @@ cmd_tunnel_config() {
 
 cmd_tunnel_xflock() {
 	if [ $# -ne 5 ] ; then
-		echo -n "Usage: rlq tunnel xadd flock_src flock_dst "
-		echo "peer-kek-id ip/mask name"
+		echo -n "Usage: rlq tunnel xadd [flock_src] [flock_dst] "
+		echo "[peer-kek-id] [ip/mask] [name]"
 		echo ""
 		echo "Configures a tunnel between your device and the device"
 		echo "specified by the destination flock and the peer-kek-id."
@@ -1134,7 +1135,8 @@ cmd_xflock() {
 
 cmd_xflock_ambry() {
 	if [ $# -ne 3 ]; then
-		echo "Usage: rlq xflock ambry flock_a flock_b /path/to/ambry"
+		echo -n "Usage: rlq xflock ambry [flock_a] [flock_b] "
+		echo "[/path/to/ambry]"
 		echo ""
 		echo -n "This is the cross-flock variant of"
 		echo " rlq ambry upload."
