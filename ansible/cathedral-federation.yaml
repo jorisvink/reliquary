@@ -1,0 +1,13 @@
+---
+- name: Deploy new federation keys
+  hosts: cathedrals
+  become: true
+
+  tasks:
+  - name: Copy the cathedral federation secret
+    ansible.builtin.copy:
+      content: "{{ federation_secret | b64decode }}"
+      dest: "/home/cathedral/sync.secret"
+      owner: cathedral
+      group: cathedral
+      mode: "0400"
