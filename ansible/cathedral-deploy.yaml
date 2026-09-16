@@ -147,6 +147,7 @@
         instance shr-cathedral
 
         cathedral_mtu 1373
+        cathedral_commixtion yes
         pidfile /tmp/cathedral-shroud.pid
         local {{ ansible_ssh_host }}:4469
         secret /home/cathedral/sync.secret
