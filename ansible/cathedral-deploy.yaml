@@ -184,11 +184,11 @@
         After=network-online.target
 
         [Service]
-        Type=exec
+        Type=forking
         Restart=always
         RestartSec=10
         KillSignal=SIGQUIT
-        ExecStart=sanctum -c /home/cathedral/cathedral.conf
+        ExecStart=sanctum -c /home/cathedral/cathedral.conf -d
 
         [Install]
         WantedBy=multi-user.target
@@ -206,11 +206,11 @@
         After=network-online.target
 
         [Service]
-        Type=exec
+        Type=forking
         Restart=always
         RestartSec=10
         KillSignal=SIGQUIT
-        ExecStart=sanctum -c /home/cathedral/cathedral-shroud.conf
+        ExecStart=sanctum -c /home/cathedral/cathedral-shroud.conf -d
 
         [Install]
         WantedBy=multi-user.target
