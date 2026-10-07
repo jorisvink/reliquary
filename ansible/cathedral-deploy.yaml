@@ -45,7 +45,11 @@
     ansible.builtin.copy:
       content: |
         Port 22
+        {% if aws %}
+        ListenAddress {{ aws_internal_ip }}
+        {% else %}
         ListenAddress {{ansible_ssh_host}}
+        {% endif %}
         Protocol 2
         HostKey /etc/ssh/ssh_host_rsa_key
         SyslogFacility AUTH
@@ -108,38 +112,6 @@
       mode: "0555"
       src: "{{reldir}}/syncretism"
 
-  - name: Setup the cathedral config (old)
-    ansible.builtin.copy:
-      content: |
-        mode cathedral
-        instance cathedral
-
-        cathedral_mtu 1373
-        pidfile /tmp/cathedral.pid
-        local {{ ansible_ssh_host }}:4500
-        secret /home/cathedral/sync.secret
-        secretdir /home/cathedral/shared/identities
-        settings /home/cathedral/shared/settings.conf
-
-        {% if p2p_sync is defined %}
-        cathedral_p2p_sync yes
-        {% endif %}
-
-        cathedral_nat_port 4501
-
-        {% if tfc_on is defined %}
-        tfc on
-        {% endif %}
-
-        run control as root
-        run cathedral as cathedral
-        run purgatory-rx as purgatory
-        run purgatory-tx as purgatory
-      dest: "/home/cathedral/cathedral.conf"
-      owner: cathedral
-      group: cathedral
-      mode: "0600"
-
   - name: Setup the cathedral config
     ansible.builtin.copy:
       content: |
@@ -149,7 +121,13 @@
         cathedral_mtu 1373
         cathedral_commixtion yes
         pidfile /tmp/cathedral-shroud.pid
+
+        {% if aws %}
+        local {{ aws_internal_ip }}:4469
+        cathedral_ip {{ ansible_ssh_host }}:4469
+        {% else %}
         local {{ ansible_ssh_host }}:4469
+        {% endif %}
         secret /home/cathedral/sync.secret
         secretdir /home/cathedral/shared/identities
         settings /home/cathedral/shared/settings-shroud.conf
@@ -175,28 +153,6 @@
       group: cathedral
       mode: "0600"
 
-  - name: Setup systemd for cathedral (old)
-    ansible.builtin.copy:
-      content: |
-        [Unit]
-        Description=cathedral-legacy
-        Wants=network-online.target
-        After=network-online.target
-
-        [Service]
-        Type=forking
-        Restart=always
-        RestartSec=10
-        KillSignal=SIGQUIT
-        ExecStart=sanctum -c /home/cathedral/cathedral.conf -d
-
-        [Install]
-        WantedBy=multi-user.target
-      dest: "/etc/systemd/system/cathedral-legacy.service"
-      owner: root
-      group: root
-      mode: "0600"
-
   - name: Setup systemd for cathedral
     ansible.builtin.copy:
       content: |
@@ -218,14 +174,6 @@
       owner: root
       group: root
       mode: "0600"
-
-  - name: Setup the cathedral settings (old)
-    ansible.builtin.file:
-      path: "/home/cathedral/shared/settings.conf"
-      owner: cathedral
-      group: cathedral
-      mode: "0600"
-      state: touch
 
   - name: Setup the cathedral settings
     ansible.builtin.file:
@@ -267,12 +215,6 @@
       name: "sync cathedral settings"
       minute: "*"
       job: "syncretism -c -k /etc/syncretism/syncretism.secret {{syncretism_master}} /home/shared /home/cathedral/shared"
-
-  - name: Enable cathedral services (old)
-    ansible.builtin.systemd_service:
-      name: cathedral-legacy
-      enabled: false
-      masked: no
 
   - name: Enable cathedral services
     ansible.builtin.systemd_service:
