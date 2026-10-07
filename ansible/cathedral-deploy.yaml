@@ -271,7 +271,7 @@
   - name: Enable cathedral services (old)
     ansible.builtin.systemd_service:
       name: cathedral-legacy
-      enabled: true
+      enabled: false
       masked: no
 
   - name: Enable cathedral services

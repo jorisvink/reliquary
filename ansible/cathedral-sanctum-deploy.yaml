@@ -1,0 +1,16 @@
+---
+- name: Deploy sanctum binaries to cathedral
+  hosts: cathedrals
+  become: true
+
+  vars:
+    reldir: "{{release}}-{{target_arch}}"
+
+  tasks:
+  - name: Copy sanctum binary
+    ansible.builtin.copy:
+      dest: "/usr/bin/sanctum"
+      owner: root
+      group: root
+      mode: "0555"
+      src: "{{reldir}}/sanctum"
