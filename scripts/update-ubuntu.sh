@@ -7,14 +7,13 @@ if [ "$#" -lt 1 ]; then
 	exit 1
 fi
 
-if [ ! -z "$ROOT" ]; then
-	user="-u root"
-else
+if [ -z "$CATHEDRAL_USER" ]; then
 	user="-u priest -K"
+else
+	user="-u $CATHEDRAL_USER"
 fi
 
 CONFIG=`realpath $1 `
-
 shift
 
 if [ ! -d $CONFIG ]; then
@@ -24,7 +23,6 @@ fi
 
 echo "Using configuration $CONFIG"
 
-ansible-playbook -i $CONFIG/api.yaml \
-	--ask-vault-password \
+ansible-playbook -i $CONFIG/api.yaml -i $CONFIG/cathedrals.yaml \
 	ansible/ubuntu-update.yaml \
 	$user $@
