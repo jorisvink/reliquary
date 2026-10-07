@@ -39,15 +39,6 @@ WHERE
     cathedral_shrouded = 't'
 """
 
-SQL_GET_CATHEDRALS_OLD = """
-SELECT
-    cathedral_ip, cathedral_port
-FROM
-    cathedrals
-WHERE
-    cathedral_shrouded = 'f'
-"""
-
 SQL_GET_DEVICES_PER_FLOCK = """
 SELECT
     device_kek,
@@ -95,7 +86,6 @@ class Sync:
             "SYNC_SHARED_PATH", default="shared"
         )
 
-        self.settings_path_old = f"{self.shared_path}/settings.conf"
         self.settings_path = f"{self.shared_path}/settings-shroud.conf"
 
         if self.deployment != "dev":
@@ -155,16 +145,6 @@ class Sync:
                     ambry += f"ambry-{flock_a}_{flock_b}"
                     self.config(f"xflock {flock_a} {flock_b} {ambry}")
 
-                cfg = self.cfg
-                cathedrals = await kore.dbquery("db", SQL_GET_CATHEDRALS_OLD)
-                for cathedral in cathedrals:
-                    ip = cathedral["cathedral_ip"]
-                    port = cathedral["cathedral_port"]
-                    self.config(f"federate {ip} {port}")
-
-                self.config_write(self.settings_path_old)
-
-                self.cfg = cfg
                 cathedrals = await kore.dbquery("db", SQL_GET_CATHEDRALS)
                 for cathedral in cathedrals:
                     ip = cathedral["cathedral_ip"]
