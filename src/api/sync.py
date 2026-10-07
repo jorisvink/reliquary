@@ -18,6 +18,7 @@ import kore
 import os
 import time
 import signal
+import filecmp
 
 SQL_GET_FLOCKS_WITH_TIME_LEFT = """
 SELECT DISTINCT
@@ -71,6 +72,8 @@ class Sync:
         self.allow(seccomp, "mkdirat")
         self.allow(seccomp, "renameat")
         self.allow(seccomp, "rename")
+        self.allow(seccomp, "unlink")
+        self.allow(seccomp, "unlinkat")
 
     def configure(self, args):
         self.counter = 0
@@ -197,7 +200,11 @@ class Sync:
                 tmppath = f"{path}.tmp"
                 with open(tmppath, "wb") as f:
                     f.write(bytes.fromhex(pubkey))
-                os.rename(tmppath, path)
+
+                if filecmp.cmp(tmppath, path) is False:
+                    os.rename(tmppath, path)
+                else:
+                    os.unlink(tmppath)
 
             self.config(f"\tallow {cid} spi {kek} {limit}")
 
