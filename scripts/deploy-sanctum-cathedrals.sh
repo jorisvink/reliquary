@@ -7,14 +7,7 @@ if [ "$#" -lt 1 ]; then
 	exit 1
 fi
 
-if [ ! -z "$CATHEDRAL_INIT" ]; then
-	user="-u root"
-else
-	user="-u priest -K"
-fi
-
 CONFIG=`realpath $1 `
-
 shift
 
 if [ ! -d $CONFIG ]; then
@@ -26,7 +19,7 @@ echo "Using configuration $CONFIG"
 
 ansible-playbook -i $CONFIG/cathedrals.yaml \
 	ansible/cathedral-sanctum-deploy.yaml \
-	$user \
+	-u priest -K \
 	-e config=$CONFIG \
 	-e @$CONFIG/settings.yaml \
 	-e release=`pwd`/release \

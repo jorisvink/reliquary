@@ -7,10 +7,10 @@ if [ "$#" -lt 1 ]; then
 	exit 1
 fi
 
-if [ ! -z "$CATHEDRAL_INIT" ]; then
-	user="-u root"
-else
+if [ ! -z "$CATHEDRAL_USER" ]; then
 	user="-u priest -K"
+else
+	user="-u $CATHEDRAL_USER"
 fi
 
 CONFIG=`realpath $1 `
