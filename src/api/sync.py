@@ -201,10 +201,13 @@ class Sync:
                 with open(tmppath, "wb") as f:
                     f.write(bytes.fromhex(pubkey))
 
-                if filecmp.cmp(tmppath, path) is False:
-                    os.rename(tmppath, path)
+                if os.path.exists(path):
+                    if filecmp.cmp(tmppath, path) is False:
+                        os.rename(tmppath, path)
+                    else:
+                        os.unlink(tmppath)
                 else:
-                    os.unlink(tmppath)
+                    os.rename(tmppath, path)
 
             self.config(f"\tallow {cid} spi {kek} {limit}")
 
