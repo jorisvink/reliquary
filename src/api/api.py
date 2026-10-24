@@ -521,6 +521,9 @@ class Api:
         req.response(200, msg.encode())
 
     async def device_approve(self, req, flock, device):
+        if await self.flock_exists_for_account(req, flock) is None:
+            return
+
         result, msg = await self.device_approve_get_kek(req, flock, device)
 
         if result is False:
