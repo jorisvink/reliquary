@@ -58,6 +58,9 @@ CREATE TABLE cathedrals (
     cathedral_shrouded boolean default false
 );
 
+CREATE UNIQUE INDEX devices_network_kek ON DEVICES
+    (device_network, device_kek) WHERE device_approved = 't';
+
 -- GRANT SELECT ON ALL TABLES IN SCHEMA public TO cathedral;
 -- GRANT ALL ON ALL SEQUENCES IN SCHEMA public to api;
 -- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO api;
