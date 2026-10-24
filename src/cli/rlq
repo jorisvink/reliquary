@@ -474,7 +474,7 @@ cmd_flock_join() {
 	local outdir=""
 
 	if [ $# -eq 2 ]; then
-		DIR=$2
+		outdir=$2
 	elif [ $# -ne 1 ]; then
 		echo "Usage: rlq flock join [flock] [outdir]"
 		echo ""
@@ -488,7 +488,7 @@ cmd_flock_join() {
 		exit 1
 	fi
 
-	if [ -f $DIR/$1/cathedral_id ]; then
+	if [ -f $outdir/$1/cathedral_id ]; then
 		id=$(get_flock_cathedral_id $1)
 
 		echo "This device has already been joined into flock $1 ($id)."
@@ -510,24 +510,24 @@ cmd_flock_join() {
 
 	require_dependency ambry
 
-	mkdir -p $DIR/$1
-	rm -f $DIR/$1/cosk-priv $DIR/$1/cosk-pub
-	ambry cosk-pair $DIR/$1/cosk-priv $DIR/$1/cosk-pub
+	mkdir -p $outdir/$1
+	rm -f $outdir/$1/cosk-priv $outdir/$1/cosk-pub
+	ambry cosk-pair $outdir/$1/cosk-priv $outdir/$1/cosk-pub
 
-	dev=$(api_post_binary device/$1/create $DIR/$1/cosk-pub)
+	dev=$(api_post_binary device/$1/create $outdir/$1/cosk-pub)
 
 	if [ $? -eq 0 ]; then
-		mkdir -p $DIR/$1
+		mkdir -p $outdir/$1
 
 		flock=`echo $dev | jq -r .flock`
 		id=`echo $dev | jq -r .cathedral_id`
 		secret=`echo $dev | jq -r .cathedral_secret`
 
-		echo $id > $DIR/$1/cathedral_id
-		echo $secret | xxd -r -p - $DIR/$1/id-$id
+		echo $id > $outdir/$1/cathedral_id
+		echo $secret | xxd -r -p - $outdir/$1/id-$id
 
-		mv $DIR/$1/cosk-priv $DIR/$1/cosk-$id
-		mv $DIR/$1/cosk-pub $DIR/$1/cosk-pub-$id
+		mv $outdir/$1/cosk-priv $outdir/$1/cosk-$id
+		mv $outdir/$1/cosk-pub $outdir/$1/cosk-pub-$id
 
 		echo "This device has been joined into $1 and is pending"
 		echo "approval by the flock administrator."
@@ -538,7 +538,7 @@ cmd_flock_join() {
 		echo "the device its KEK, please place this under the following"
 		echo "path:"
 		echo ""
-		echo "    $DIR/$1"
+		echo "    $outdir/$1"
 		echo ""
 	else
 		echo "something went wrong: $dev"
