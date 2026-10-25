@@ -41,6 +41,11 @@ ACCOUNT_URLS_EXPIRED = [
     "/account/logout"
 ]
 
+API_URLS_EXPIRED = [
+    "/v1/account",
+    "/v1/account/time"
+]
+
 UNAUTHED_URLS = [
     "/v1/init",
     "/v1/register",
@@ -105,8 +110,9 @@ async def token_fetch(req):
     req.expires = int(res[0]["account_time_left"])
     if req.expires < now:
         if is_web is False:
-            req.response(403, b'account expired')
-            return False
+            if req.path not in API_URLS_EXPIRED:
+                req.response(403, b'account expired')
+                return False
         elif req.path not in ACCOUNT_URLS_EXPIRED:
             req.response_header("location", "/account/")
             req.response(302, None)
@@ -240,6 +246,9 @@ class Api:
         d.route("^/v1/xflock/([a-f0-9]{16})/([a-f0-9]{16})/ambry$",
             self.xflock_ambry_upload, methods=["post"],
         )
+
+        d.route("/v1/account", self.account_info, methods=["get"])
+        d.route("/v1/account/time", self.account_time, methods=["post"])
 
         d.route("/v1/init", self.init, methods=["post"])
         d.route("/v1/register", self.register, methods=["post"])
@@ -411,6 +420,22 @@ class Api:
         }
 
         req.response(200, json.dumps(resp).encode())
+
+    async def account_info(self, req):
+        resp = {
+            "expires": int(req.expires),
+            "flocks_max": req.account_max_flocks
+        }
+
+        req.response(200, json.dumps(resp).encode())
+
+    async def account_time(self, req):
+        await kore.dbquery("db",
+            SQL_ACCOUNT_TIME_ADD,
+            params=[req.account]
+        )
+
+        req.response(200, b'time added')
 
     async def flock_create(self, req):
         flocks = await self.flocks_for_account(req.account)
