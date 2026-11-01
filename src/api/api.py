@@ -235,6 +235,8 @@ class Api:
             self.device_delete, methods=["post"])
         d.route("^/v1/device/([a-f0-9]{16})/([a-f0-9]{8})/approve$",
             self.device_approve, methods=["post"])
+        d.route("^/v1/device/([a-f0-9]{16})/([a-f0-9]{8})/replace$",
+            self.device_replace, methods=["post"])
         d.route("^/v1/device/list/([a-f0-9]{16})$",
             self.device_list, methods=["get"])
 
@@ -556,6 +558,35 @@ class Api:
             return
 
         req.response(200, msg.encode())
+
+    async def device_replace(self, req, flock, device):
+        if len(req.body) != 32:
+            req.response(400, b'invalid cosk')
+            return
+
+        net = await self.flock_exists_for_account(req, flock)
+        if net is None:
+            return
+
+        key = secrets.token_hex(32)
+
+        res = await kore.dbquery("db",
+            SQL_DEVICE_REPLACE,
+            params=[flock, device, key, req.body.hex(), req.account]
+        )
+
+        if len(res) != 1:
+            req.response(400, f"{device} not found or not approved".encode())
+            return
+
+        resp = {
+            "cathedral_id": device,
+            "cathedral_secret": key,
+            "flock": net[0]["network_token"],
+            "kek": int(res[0]["device_kek"])
+        }
+
+        req.response(200, json.dumps(resp).encode())
 
     async def ambry_upload(self, req, flock):
         if await self.flock_exists_for_account(req, flock) is None:

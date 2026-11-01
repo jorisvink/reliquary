@@ -242,6 +242,20 @@ RETURNING
     device_kek
 """
 
+SQL_DEVICE_REPLACE = """
+UPDATE
+    devices
+SET
+    device_cathedral_key = $3, device_pubkey = $4
+WHERE
+    device_network_token = $1 AND
+    device_cathedral_id = $2 AND
+    device_account = $5 AND
+    device_approved = 't'
+RETURNING
+    device_kek
+"""
+
 SQL_DEVICE_LIST = """
 SELECT
     device_kek, device_cathedral_id, device_approved, device_created
