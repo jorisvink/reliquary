@@ -18,7 +18,7 @@ import kore
 import os
 import time
 import signal
-import filecmp
+import hashlib
 
 SQL_GET_FLOCKS_WITH_TIME_LEFT = """
 SELECT DISTINCT
@@ -29,6 +29,8 @@ WHERE
     networks.network_owner = accounts.account_id AND
     accounts.account_time_left > EXTRACT(epoch FROM now()) AND
     networks.network_ambry_update != 0
+ORDER BY
+    network_token
 """
 
 SQL_GET_CATHEDRALS = """
@@ -38,6 +40,8 @@ FROM
     cathedrals
 WHERE
     cathedral_shrouded = 't'
+ORDER BY
+    cathedral_ip, cathedral_port
 """
 
 SQL_GET_DEVICES_PER_FLOCK = """
@@ -51,6 +55,8 @@ FROM
     devices
 WHERE
     device_network_token = $1 AND device_approved = 't'
+ORDER BY
+    device_cathedral_id
 """
 
 SQL_GET_XFLOCKS = """
@@ -77,6 +83,11 @@ class Sync:
 
     def configure(self, args):
         self.counter = 0
+        self.settings_digest = None
+
+        # path -> (sha256 digest, st_size, st_mtime_ns) of what we last wrote.
+        self.written = {}
+
         kore.config.workers = 1
         #kore.config.seccomp_tracing = "yes"
         kore.config.pidfile = "/tmp/sync.pid"
@@ -103,29 +114,74 @@ class Sync:
         kore.task_create(self.run())
 
     def config_reset(self):
-        self.cfg = ""
+        self.cfg = []
 
     def config(self, line):
-        self.cfg += line + "\n"
+        self.cfg.append(line)
+
+    def is_current(self, path, digest):
+        try:
+            st = os.stat(path)
+        except FileNotFoundError:
+            return False
+
+        cached = self.written.get(path)
+        if cached is not None:
+            if cached == (digest, st.st_size, st.st_mtime_ns):
+                return True
+
+        try:
+            with open(path, "rb") as f:
+                ondisk = hashlib.sha256(f.read()).digest()
+        except OSError:
+            return False
+
+        if ondisk != digest:
+            return False
+
+        self.written[path] = (digest, st.st_size, st.st_mtime_ns)
+        return True
+
+    def write_if_changed(self, path, data, mode=None):
+        digest = hashlib.sha256(data).digest()
+
+        if self.is_current(path, digest):
+            return False
+
+        tmppath = f"{path}.tmp"
+
+        if mode is None:
+            fd = os.open(tmppath, os.O_CREAT | os.O_TRUNC | os.O_WRONLY)
+        else:
+            fd = os.open(tmppath,
+                os.O_CREAT | os.O_TRUNC | os.O_WRONLY, mode)
+
+        with open(fd, "wb") as f:
+            f.write(data)
+
+        os.rename(tmppath, path)
+
+        st = os.stat(path)
+        self.written[path] = (digest, st.st_size, st.st_mtime_ns)
+
+        return True
 
     def config_write(self, path):
+        body = ("\n".join(self.cfg) + "\n").encode()
+        digest = hashlib.sha256(body).hexdigest()
+
+        if digest == self.settings_digest and os.path.exists(path):
+            return False
+
+        data = f"# settings {digest[:16]}\n".encode() + body
+
         try:
-            tmppath = f"{path}.tmp"
-
-            fd = os.open(
-                path=tmppath,
-                flags=(
-                    os.O_CREAT | os.O_TRUNC | os.O_WRONLY
-                ),
-                mode=0o444
-            )
-
-            with open(fd, "w") as f:
-                f.write(self.cfg)
-
-            os.rename(tmppath, path)
+            changed = self.write_if_changed(path, data, mode=0o444)
+            self.settings_digest = digest
+            return changed
         except Exception as e:
             kore.log(kore.LOG_NOTICE, f"failed to write settings {e}")
+            return False
 
     async def run(self):
         while True:
@@ -133,15 +189,15 @@ class Sync:
                 kore.log(kore.LOG_INFO, f"sync {self.counter} started")
 
                 self.config_reset()
-                self.config(f"# settings {self.counter}")
+                self.identities_written = 0
 
                 flocks = await kore.dbquery("db", SQL_GET_FLOCKS_WITH_TIME_LEFT)
                 for flock in flocks:
                     await self.flock_sync(flock)
 
                 xflocks = await self.resolve_xflocks()
-                for key, count in xflocks.items():
-                    if count != 2:
+                for key in sorted(xflocks):
+                    if xflocks[key] != 2:
                         continue
                     flock_a, flock_b = key
                     ambry = "/home/cathedral/shared/ambries/"
@@ -154,9 +210,12 @@ class Sync:
                     port = cathedral["cathedral_port"]
                     self.config(f"federate {ip} {port}")
 
-                self.config_write(self.settings_path)
+                changed = self.config_write(self.settings_path)
 
-                kore.log(kore.LOG_INFO, f"sync {self.counter} completed")
+                kore.log(kore.LOG_INFO,
+                    f"sync {self.counter} completed "
+                    f"(settings {'updated' if changed else 'unchanged'}, "
+                    f"{self.identities_written} identities written)")
                 self.counter = self.counter + 1
             except Exception as e:
                 kore.log(kore.LOG_NOTICE, f"sync failed: {e}")
@@ -165,7 +224,6 @@ class Sync:
 
     async def flock_sync(self, flock):
         token = flock["network_token"]
-        kore.log(kore.LOG_INFO, f"syncing {flock}")
 
         devices = await kore.dbquery("db",
             SQL_GET_DEVICES_PER_FLOCK,
@@ -173,9 +231,6 @@ class Sync:
         )
 
         self.config(f"flock {token} {{")
-
-        path = f"{self.shared_path}/identities"
-        os.makedirs(path, exist_ok=True)
 
         path = f"{self.shared_path}/identities/flock-{token}"
         os.makedirs(path, exist_ok=True)
@@ -188,26 +243,13 @@ class Sync:
             key = device["device_cathedral_key"]
 
             path = f"{self.shared_path}/identities/flock-{token}/{cid}.key"
-            tmppath = f"{path}.tmp"
-
-            with open(tmppath, "wb") as f:
-                f.write(bytes.fromhex(key))
-
-            os.rename(tmppath, path)
+            if self.write_if_changed(path, bytes.fromhex(key)):
+                self.identities_written += 1
 
             if pubkey != "NO-KEY":
                 path = f"{self.shared_path}/identities/flock-{token}/{cid}.pub"
-                tmppath = f"{path}.tmp"
-                with open(tmppath, "wb") as f:
-                    f.write(bytes.fromhex(pubkey))
-
-                if os.path.exists(path):
-                    if filecmp.cmp(tmppath, path) is False:
-                        os.rename(tmppath, path)
-                    else:
-                        os.unlink(tmppath)
-                else:
-                    os.rename(tmppath, path)
+                if self.write_if_changed(path, bytes.fromhex(pubkey)):
+                    self.identities_written += 1
 
             self.config(f"\tallow {cid} spi {kek} {limit}")
 
