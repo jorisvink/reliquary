@@ -75,6 +75,7 @@ print_help() {
 	echo ""
 	echo "Key management:"
 	echo "  ambry upload         Upload an Ambry bundle for distribution"
+	echo "  kek covenant         Install a KEK from covenant"
 	echo "  kek install          Install a KEK from a local file"
 	echo "  kek recv             Install a KEK from a remote distributor"
 	echo "  kek send             Submit a KEK to a peer"
@@ -636,6 +637,7 @@ cmd_kek() {
 		echo "Usage: rlq kek <subcommand> [args...]"
 		echo ""
 		echo "Available kek subcommands:"
+		echo "  covenant   Receive a KEK from covenant"
 		echo "  install    Install a KEK from a local file"
 		echo "  recv       Receive a KEK from a remote distributor"
 		echo "  send       Submit a KEK to a peer"
@@ -646,6 +648,9 @@ cmd_kek() {
 	shift
 
 	case "$subcommand" in
+	covenant)
+		cmd_kek_covenant $@
+		;;
 	install)
 		cmd_kek_install $@
 		;;
@@ -660,6 +665,39 @@ cmd_kek() {
 		exit 1
 		;;
 	esac
+}
+
+cmd_kek_covenant() {
+	if [ $# -ne 1 ] ; then
+		echo "Usage: rlq kek covenant [flock]"
+		echo ""
+		echo "Use cephas to receive the KEK from covenant over a sanctum"
+		echo "tunnel, it asks for the words covenant gave you."
+		exit 1
+	fi
+
+	require_dependency cephas
+
+	if [ -f $DIR/$1/device_kek ]; then
+		echo "Configuration for $1 already completed"
+		exit 1
+	fi
+
+	id=$(get_flock_cathedral_id $1)
+
+	cephas -c -l $id -o $DIR/$1/cosk-$id -s $DIR/$1/id-$id \
+	    recv $DIR/$1 || exit 1
+
+	kek=$(ls $DIR/$1 | sed -n 's/^kek-0x\([0-9a-f][0-9a-f]\)$/\1/p')
+
+	if [ -z "$kek" ]; then
+		echo "cephas did not leave a KEK in $DIR/$1"
+		exit 1
+	fi
+
+	echo $kek > $DIR/$1/device_kek
+
+	echo "The KEK is now installed as kek-0x$kek in $1."
 }
 
 cmd_kek_install() {
