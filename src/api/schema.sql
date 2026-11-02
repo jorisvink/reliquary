@@ -66,7 +66,6 @@ CREATE UNIQUE INDEX devices_network_kek ON DEVICES
 -- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO api;
 
 CREATE UNIQUE INDEX CONCURRENTLY tokens_value ON tokens (token_value);
-CREATE INDEX CONCURRENTLY tokens_expires ON tokens (token_expires);
 CREATE INDEX CONCURRENTLY tokens_account ON tokens (token_account);
 CREATE UNIQUE INDEX CONCURRENTLY accounts_key ON accounts (account_key);
 CREATE INDEX CONCURRENTLY networks_owner ON networks (network_owner);

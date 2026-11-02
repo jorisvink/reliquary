@@ -40,19 +40,23 @@ WITH account_info AS (
     JOIN
         accounts ON accounts.account_id = tokens.token_account
     WHERE
-        token_value = $1 and token_web = $2
+        token_value = $1 AND token_web = $2 AND
+        token_expires > EXTRACT(epoch FROM now())
+), touch AS (
+    UPDATE
+        tokens
+    SET
+        token_expires = (EXTRACT(epoch FROM now()) + 2592000)
+    WHERE
+        token_value = $1 AND token_web = $2 AND
+        token_expires > EXTRACT(epoch FROM now()) AND
+        token_expires < (EXTRACT(epoch FROM now()) + 2592000 - 86400)
 )
 
-UPDATE
-    tokens
-SET
-    token_expires = (EXTRACT(epoch FROM now()) + 2592000)
+SELECT
+    *
 FROM
     account_info
-WHERE
-    token_value = $1
-RETURNING
-    *
 """
 
 SQL_ACCOUNT_CREATE = """
