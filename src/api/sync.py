@@ -244,7 +244,7 @@ class Sync:
             except Exception as e:
                 kore.log(kore.LOG_NOTICE, f"sync failed: {e}")
 
-            await kore.suspend(30 * 1000)
+            await kore.suspend(20 * 1000)
 
     async def ambries_prune(self, xflocks):
         removed = 0
