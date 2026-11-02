@@ -59,12 +59,21 @@ ORDER BY
     device_cathedral_id
 """
 
+SQL_GET_ALL_FLOCKS = """
+SELECT
+    network_token
+FROM
+    networks
+"""
+
 SQL_GET_XFLOCKS = """
 SELECT
     xflock_src_token, xflock_dst_token
 FROM
     xflocks
 """
+
+AMBRY_TMP_MAX_AGE = 3600
 
 class Sync:
     def allow(self, seccomp, name):
@@ -80,6 +89,7 @@ class Sync:
         self.allow(seccomp, "rename")
         self.allow(seccomp, "unlink")
         self.allow(seccomp, "unlinkat")
+        self.allow(seccomp, "rmdir")
 
     def configure(self, args):
         self.counter = 0
@@ -120,6 +130,7 @@ class Sync:
         self.cfg.append(line)
 
     def identity_track(self, path, data):
+        self.identities_seen.add(path)
         self.identities.update(path.encode() + b"\0")
         self.identities.update(hashlib.sha256(data).digest())
 
@@ -198,6 +209,7 @@ class Sync:
                 self.config_reset()
                 self.identities_written = 0
                 self.identities = hashlib.sha256()
+                self.identities_seen = set()
 
                 flocks = await kore.dbquery("db", SQL_GET_FLOCKS_WITH_TIME_LEFT)
                 for flock in flocks:
@@ -219,16 +231,108 @@ class Sync:
                     self.config(f"federate {ip} {port}")
 
                 changed = self.config_write(self.settings_path)
+                removed = self.identities_prune()
+                ambries_removed = await self.ambries_prune(xflocks)
 
                 kore.log(kore.LOG_INFO,
                     f"sync {self.counter} completed "
                     f"(settings {'updated' if changed else 'unchanged'}, "
-                    f"{self.identities_written} identities written)")
+                    f"{self.identities_written} identities written, "
+                    f"{removed} removed, "
+                    f"{ambries_removed} ambries removed)")
                 self.counter = self.counter + 1
             except Exception as e:
                 kore.log(kore.LOG_NOTICE, f"sync failed: {e}")
 
             await kore.suspend(30 * 1000)
+
+    async def ambries_prune(self, xflocks):
+        removed = 0
+        root = f"{self.shared_path}/ambries"
+
+        rows = await kore.dbquery("db", SQL_GET_ALL_FLOCKS)
+        keep = set(f"ambry-{row['network_token']}" for row in rows)
+
+        for flock_a, flock_b in xflocks:
+            keep.add(f"ambry-{flock_a}_{flock_b}")
+
+        try:
+            entries = os.listdir(root)
+        except FileNotFoundError:
+            return 0
+
+        now = time.time()
+
+        for name in entries:
+            if not name.startswith("ambry-"):
+                continue
+
+            path = f"{root}/{name}"
+
+            if name.endswith(".tmp"):
+                try:
+                    if now - os.stat(path).st_mtime < AMBRY_TMP_MAX_AGE:
+                        continue
+                except FileNotFoundError:
+                    continue
+            elif name in keep:
+                continue
+
+            try:
+                os.unlink(path)
+                removed += 1
+                kore.log(kore.LOG_INFO, f"removed stale ambry {name}")
+            except FileNotFoundError:
+                pass
+            except OSError as e:
+                kore.log(kore.LOG_NOTICE, f"failed to remove {path}: {e}")
+
+        return removed
+
+    def identities_prune(self):
+        removed = 0
+        root = f"{self.shared_path}/identities"
+
+        try:
+            flocks = os.listdir(root)
+        except FileNotFoundError:
+            return 0
+
+        for name in flocks:
+            fdir = f"{root}/{name}"
+
+            if not name.startswith("flock-") or not os.path.isdir(fdir):
+                if os.path.isfile(fdir):
+                    try:
+                        os.unlink(fdir)
+                        removed += 1
+                    except OSError as e:
+                        kore.log(kore.LOG_NOTICE,
+                            f"failed to remove {fdir}: {e}")
+                continue
+
+            for entry in os.listdir(fdir):
+                path = f"{fdir}/{entry}"
+                if path in self.identities_seen:
+                    continue
+                try:
+                    os.unlink(path)
+                    self.written.pop(path, None)
+                    removed += 1
+                except OSError as e:
+                    kore.log(kore.LOG_NOTICE,
+                        f"failed to remove {path}: {e}")
+
+            if fdir in self.identities_seen:
+                continue
+
+            try:
+                if not os.listdir(fdir):
+                    os.rmdir(fdir)
+            except OSError as e:
+                kore.log(kore.LOG_NOTICE, f"failed to remove {fdir}: {e}")
+
+        return removed
 
     async def flock_sync(self, flock):
         token = flock["network_token"]
@@ -242,6 +346,7 @@ class Sync:
 
         path = f"{self.shared_path}/identities/flock-{token}"
         os.makedirs(path, exist_ok=True)
+        self.identities_seen.add(path)
 
         for device in devices:
             kek = hex(int(device["device_kek"]))
