@@ -64,3 +64,15 @@ CREATE UNIQUE INDEX devices_network_kek ON DEVICES
 -- GRANT SELECT ON ALL TABLES IN SCHEMA public TO cathedral;
 -- GRANT ALL ON ALL SEQUENCES IN SCHEMA public to api;
 -- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO api;
+
+CREATE UNIQUE INDEX CONCURRENTLY tokens_value ON tokens (token_value);
+CREATE INDEX CONCURRENTLY tokens_expires ON tokens (token_expires);
+CREATE INDEX CONCURRENTLY tokens_account ON tokens (token_account);
+CREATE UNIQUE INDEX CONCURRENTLY accounts_key ON accounts (account_key);
+CREATE INDEX CONCURRENTLY networks_owner ON networks (network_owner);
+CREATE INDEX CONCURRENTLY devices_ntoken ON devices (device_network_token, device_cathedral_id);
+CREATE INDEX CONCURRENTLY devices_account ON devices (device_account, device_cathedral_id);
+CREATE INDEX CONCURRENTLY devices_network ON devices (device_network);
+CREATE INDEX CONCURRENTLY xflocks_src_dst ON xflocks (xflock_src, xflock_dst);
+CREATE INDEX CONCURRENTLY xflocks_dst ON xflocks (xflock_dst);
+CREATE INDEX CONCURRENTLY xflocks_owner ON xflocks (xflock_owner);
