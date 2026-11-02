@@ -119,6 +119,10 @@ class Sync:
     def config(self, line):
         self.cfg.append(line)
 
+    def identity_track(self, path, data):
+        self.identities.update(path.encode() + b"\0")
+        self.identities.update(hashlib.sha256(data).digest())
+
     def is_current(self, path, digest):
         try:
             st = os.stat(path)
@@ -168,7 +172,10 @@ class Sync:
 
     def config_write(self, path):
         body = ("\n".join(self.cfg) + "\n").encode()
-        digest = hashlib.sha256(body).hexdigest()
+
+        h = hashlib.sha256(body)
+        h.update(self.identities.digest())
+        digest = h.hexdigest()
 
         if digest == self.settings_digest and os.path.exists(path):
             return False
@@ -190,6 +197,7 @@ class Sync:
 
                 self.config_reset()
                 self.identities_written = 0
+                self.identities = hashlib.sha256()
 
                 flocks = await kore.dbquery("db", SQL_GET_FLOCKS_WITH_TIME_LEFT)
                 for flock in flocks:
@@ -243,12 +251,16 @@ class Sync:
             key = device["device_cathedral_key"]
 
             path = f"{self.shared_path}/identities/flock-{token}/{cid}.key"
-            if self.write_if_changed(path, bytes.fromhex(key)):
+            data = bytes.fromhex(key)
+            self.identity_track(path, data)
+            if self.write_if_changed(path, data):
                 self.identities_written += 1
 
             if pubkey != "NO-KEY":
                 path = f"{self.shared_path}/identities/flock-{token}/{cid}.pub"
-                if self.write_if_changed(path, bytes.fromhex(pubkey)):
+                data = bytes.fromhex(pubkey)
+                self.identity_track(path, data)
+                if self.write_if_changed(path, data):
                     self.identities_written += 1
 
             self.config(f"\tallow {cid} spi {kek} {limit}")
