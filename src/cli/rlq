@@ -471,7 +471,7 @@ cmd_flock_delete() {
 }
 
 cmd_flock_join() {
-	local outdir=""
+	local outdir=$RELIQUARY
 
 	if [ $# -eq 2 ]; then
 		outdir=$2
