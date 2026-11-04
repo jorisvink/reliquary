@@ -134,6 +134,15 @@ class Sync:
         self.identities.update(path.encode() + b"\0")
         self.identities.update(hashlib.sha256(data).digest())
 
+    def ambry_track(self, name):
+        try:
+            st = os.stat(f"{self.shared_path}/ambries/{name}")
+            mtime = st.st_mtime_ns
+        except FileNotFoundError:
+            mtime = 0
+
+        self.ambries.update(f"{name}\0{mtime}\0".encode())
+
     def is_current(self, path, digest):
         try:
             st = os.stat(path)
@@ -186,6 +195,7 @@ class Sync:
 
         h = hashlib.sha256(body)
         h.update(self.identities.digest())
+        h.update(self.ambries.digest())
         digest = h.hexdigest()
 
         if digest == self.settings_digest and os.path.exists(path):
@@ -210,6 +220,7 @@ class Sync:
                 self.identities_written = 0
                 self.identities = hashlib.sha256()
                 self.identities_seen = set()
+                self.ambries = hashlib.sha256()
 
                 flocks = await kore.dbquery("db", SQL_GET_FLOCKS_WITH_TIME_LEFT)
                 for flock in flocks:
@@ -220,8 +231,9 @@ class Sync:
                     if xflocks[key] != 2:
                         continue
                     flock_a, flock_b = key
-                    ambry = "/home/cathedral/shared/ambries/"
-                    ambry += f"ambry-{flock_a}_{flock_b}"
+                    name = f"ambry-{flock_a}_{flock_b}"
+                    ambry = f"/home/cathedral/shared/ambries/{name}"
+                    self.ambry_track(name)
                     self.config(f"xflock {flock_a} {flock_b} {ambry}")
 
                 cathedrals = await kore.dbquery("db", SQL_GET_CATHEDRALS)
@@ -370,6 +382,7 @@ class Sync:
 
             self.config(f"\tallow {cid} spi {kek} {limit}")
 
+        self.ambry_track(f"ambry-{token}")
         self.config(f"\tambry /home/cathedral/shared/ambries/ambry-{token}")
         self.config("}")
 
