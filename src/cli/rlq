@@ -65,6 +65,7 @@ print_help() {
 	echo "  device approve       Approve a device in a flock"
 	echo "  device delete        Remove a device from a flock"
 	echo "  device list          List devices in a flock"
+	echo "  device replace       Give a device a new cosk and secret"
 	echo ""
 	echo "Flock management:"
 	echo "  flock create         Create a new flock"
@@ -319,6 +320,7 @@ cmd_device() {
 		echo "  approve    Approve a device in a flock"
 		echo "  delete    Remove a device from a flock"
 		echo "  list      List devices in a flock"
+		echo "  replace   Give a device a new cosk and secret"
 		exit 1
 	fi
 
@@ -334,6 +336,9 @@ cmd_device() {
 		;;
 	list)
 		cmd_device_list $@
+		;;
+	replace)
+		cmd_device_replace $@
 		;;
 	*)
 		echo "Unknown device subcommand: $subcommand"
@@ -393,6 +398,54 @@ cmd_device_list() {
 		echo $resp
 	else
 		echo "something went wrong: $resp"
+	fi
+}
+
+cmd_device_replace() {
+	local outdir=$RELIQUARY
+
+	if [ $# -eq 3 ]; then
+		outdir=$3
+	elif [ $# -ne 2 ]; then
+		echo "Usage: rlq device replace [flock] [device] [outdir]"
+		echo ""
+		echo "Replaces the cosk and cathedral secret of a device."
+		echo ""
+		echo "If outdir is specified all files will be stored there"
+		echo "instead of the default location"
+		echo ""
+		echo "The device keeps its kek-id, its KEK is not replaced."
+		exit 1
+	fi
+
+	require_dependency ambry
+
+	mkdir -p $outdir/$1
+	rm -f $outdir/$1/cosk-priv $outdir/$1/cosk-pub
+	ambry cosk-pair $outdir/$1/cosk-priv $outdir/$1/cosk-pub
+
+	dev=$(api_post_binary device/$1/$2/replace $outdir/$1/cosk-pub)
+
+	if [ $? -eq 0 ]; then
+		id=`echo $dev | jq -r .cathedral_id`
+		secret=`echo $dev | jq -r .cathedral_secret`
+
+		echo $id > $outdir/$1/cathedral_id
+		echo $secret | xxd -r -p - $outdir/$1/id-$id
+
+		mv -f $outdir/$1/cosk-priv $outdir/$1/cosk-$id
+		mv -f $outdir/$1/cosk-pub $outdir/$1/cosk-pub-$id
+
+		echo "The cosk and cathedral secret of this device have been"
+		echo "replaced, restart its tunnels so they load the new files."
+		echo ""
+		echo "    Device: $id"
+		echo ""
+		echo "Its KEK was not replaced, renew it if the old device"
+		echo "should no longer be able to open new bundles."
+		echo ""
+	else
+		echo "something went wrong: $dev"
 	fi
 }
 
@@ -671,7 +724,7 @@ cmd_kek_covenant() {
 	if [ $# -ne 1 ] ; then
 		echo "Usage: rlq kek covenant [flock]"
 		echo ""
-		echo "Use cephas to receive the KEK from covenant over a sanctum"
+		echo "Use cephas to receive a KEK or config from covenant over a sanctum"
 		echo "tunnel, it asks for the words covenant gave you."
 		exit 1
 	fi
@@ -691,8 +744,15 @@ cmd_kek_covenant() {
 	kek=$(ls $DIR/$1 | sed -n 's/^kek-0x\([0-9a-f][0-9a-f]\)$/\1/p')
 
 	if [ -z "$kek" ]; then
-		echo "cephas did not leave a KEK in $DIR/$1"
-		exit 1
+		cfg=$(ls $DIR/$1 | sed -n 's/^config-0x[0-9a-f][0-9a-f]$/&/p')
+
+		if [ -z "$cfg" ]; then
+			echo "cephas did not leave a KEK in $DIR/$1"
+			exit 1
+		fi
+
+		echo "The configuration is now installed as $cfg in $1."
+		return 0
 	fi
 
 	echo $kek > $DIR/$1/device_kek
